@@ -30,7 +30,7 @@ for i in "$@"; do
             rm -rf $OUTDIR
             sleep 1;
         fi
-        ALF/bin/alfsim $i
+        alfsim $i
         ERROR_ON_EXIT=$(tail -n1 $OUTDIR/logfile.txt | grep -io '^error')
         m=$((m+1))
     done

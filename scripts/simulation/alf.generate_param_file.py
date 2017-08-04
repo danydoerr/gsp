@@ -9,8 +9,6 @@ import logging
 DEFAULT_PAM = 10
 DEFAULT_NSPECIES = 10
 
-ALF_PATH = './ALF/bin/'
-
 LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.DEBUG)
 
@@ -60,7 +58,7 @@ if __name__ == '__main__':
                 seqTypes.append(2)
    
     dbName = '%s.db' %args[0].rsplit('.', 1)[0] 
-    p = subprocess.Popen([join(ALF_PATH, 'fasta2darwin'), args[0], '-d', '-o',
+    p = subprocess.Popen(['fasta2darwin', args[0], '-d', '-o',
         dbName], stdout=subprocess.PIPE)
     output, err = p.communicate()
 
@@ -87,7 +85,7 @@ modelSwitchS := [[1.0, 0], [0, 1.0]]:
 modelSwitchD := [[1.0, 0], [0, 1.0]]:
 
 # parameters concerning gene duplication
-geneDuplRate := 0.00001;
+geneDuplRate := 0.0001;
 numberDupl := 5;
 transDupl := 0.5;
 fissionDupl := 0.1;
@@ -102,13 +100,13 @@ ratefac_subfunc := 1.2;
 life_subfunc := 10;
 
 # parameters concerning gene loss
-geneLossRate := 0.00001;
+geneLossRate := 0.0001;
 numberLoss := 5;
 
 # parameters concerning genome rearrangement
-invers := 0.000004;
-invSize := 20000;
-transloc := 0.000002;
+invers := 0.004;
+invSize := 200;
+transloc := 0.002;
 transSize := 100;
 invtrans := 0.1;
 numberFusion := 0;
