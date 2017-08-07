@@ -52,3 +52,30 @@ rule run_alf:
         '   rm -rf "${{i%.drw}}";'
         '   mv "${{i%.drw}}_1" "${{i%.drw}}";'
         'fi'
+
+rule alf_output_to_genome:
+    input:
+        '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/DB/SE{num}_dna.fa' %(ALF_DIR, N_SPECIES)
+    output:
+        '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/DB/SE{num}_dna_gen.fa' %(ALF_DIR, N_SPECIES)
+    shell:
+        '%s/alf.genomes2dna.py {input} > {output}' %SCRIPTS
+
+
+rule concat_alf_genomes:	
+    input:
+        leave_genomes = chain('%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/DB/SE%03d_dna_gen.fa' %(ALF_DIR, N_SPECIES, i+1)
+                for i in range(N_SPECIES))
+    output:
+        '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/leaf_genomes_dna.fa' %(ALF_DIR, N_SPECIES)
+    shell:
+        'cat {input} > {output}'
+
+
+rule align_alf_output:
+    input:
+        '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/leaf_genomes_dna.fa' %(ALF_DIR, N_SPECIES)
+    output:
+        '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/leaf_genomes_dna.fa.psl' %(ALF_DIR, N_SPECIES)
+    shell:
+        '%s/align.sh {input}' %SCRIPTS
