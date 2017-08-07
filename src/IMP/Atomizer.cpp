@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 	auto end = std::chrono::high_resolution_clock::now();
 	auto diff = end - start;
 	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
-	std::cout << "Done! Algorithm has taken " << ms << " milliseconds." << std::endl;
+	std::cerr << "Done! Algorithm has taken " << ms << " milliseconds." << std::endl;
 
 	return EXIT_SUCCESS;
 }
