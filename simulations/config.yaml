@@ -1,8 +1,8 @@
-segment_lenth: [300] #[100, 300, 500]
+segment_lenth: [100,300,500] 
 number_of_segs: [1000]
 
 number_of_species: 5
-pams: [10] #[10, 30, 50, 70, 90, 110, 130]
+pams: [10, 30, 50, 70, 90, 110, 130]
 repeats: 1
 
 alf_dir: alf
