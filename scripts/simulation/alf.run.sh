@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MAX_TRIALS=10
+MAX_TRIALS=1
 
 if [ $# -lt 1 ]; then
     echo -e "\tusage: $0 <DRW FILE 1> ... <DRW FILE N>"
@@ -12,7 +12,8 @@ for i in "$@"; do
         echo -e "\tusage: $0 <DRW FILE 1> ... <DRW FILE N>"
         exit 1
     fi
-    rm -f *.db.map *.db.tree
+    DB=$(grep 'realorganism' $i | cut -f2 -d\');
+    rm -f $DB.map $DB.tree
     ERROR_ON_EXIT=1
     OUTDIR=$(grep 'mname' $i | cut -f2 -d\');
     m=0
@@ -31,7 +32,11 @@ for i in "$@"; do
             sleep 1;
         fi
         alfsim $i
-        ERROR_ON_EXIT=$(tail -n1 $OUTDIR/logfile.txt | grep -io '^error')
+        if [ "$?" -ne "0" ]; then
+            ERROR_ON_EXIT="$?"
+        else
+            ERROR_ON_EXIT=$(tail -n1 $OUTDIR/logfile.txt | grep -io '^error')
+        fi
         m=$((m+1))
     done
 done
