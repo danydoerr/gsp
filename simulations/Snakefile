@@ -39,12 +39,16 @@ rule generate_param_file:
     shell:
         '%s/alf.generate_param_file.py -p {params.pam_dist} -n %s {input} > {output}' %(SCRIPTS, N_SPECIES)
 
+
 rule run_alf:
     input: 
         '%s/l{slen}_m{ns}/run{rid}_p{pam_dist}_n%s.drw' %(ALF_DIR, N_SPECIES)
     output:
         ['%s/l{slen,\d+}_m{ns,\d+}/run{rid,\d+}_p{pam_dist,\d+}_n%s/DB/SE%03d_dna.fa' %(ALF_DIR, N_SPECIES, i+1) for i in range(N_SPECIES)]
     shell:
-        '%s/alf.run.sh {input}' %SCRIPTS
-    
-    
+        '%s/alf.run.sh {input};' %SCRIPTS + 
+        'i="{input}";'
+        'if [ ! -e "{output[0]}" -a -d "${{i%.drw}}_1" ]; then' 
+        '   rm -rf "${{i%.drw}}";'
+        '   mv "${{i%.drw}}_1" "${{i%.drw}}";'
+        'fi'
