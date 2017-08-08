@@ -13,9 +13,8 @@ from itertools import chain
 
 rule all:
     input:
-        leave_genomes = chain(*[expand('%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/DB/SE%03d_dna.fa' %(ALF_DIR, N_SPECIES, i+1), 
-                seqlen=SEQ_LEN, ms=N_MARKERS, n_species=N_SPECIES, rid=REPS,
-                pam_dist=PAMS) for i in range(N_SPECIES)])
+        leave_genomes = expand('%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/leaf_genomes_dna.fa.psl' %(ALF_DIR, N_SPECIES), 
+                seqlen=SEQ_LEN, ms=N_MARKERS, n_species=N_SPECIES, rid=REPS, pam_dist=PAMS)
 
 rule sample_genome:
     params:
