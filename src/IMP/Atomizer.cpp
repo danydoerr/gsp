@@ -13,22 +13,22 @@
 
 void IMP(std::vector<Region>& , std::vector<WasteRegion>&,
 	const std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>&,
-	unsigned int, unsigned int, double);
+	unsigned int, unsigned int, double,
+	const std::chrono::time_point<std::chrono::high_resolution_clock>);
 void printResult(const std::vector<WasteRegion>&,
 	const std::vector<int>&, 
 	const std::map<std::string, unsigned long>&);
+void shoutTime(const std::chrono::time_point<std::chrono::high_resolution_clock>);
 
 int main(int argc, char** argv) {
-	auto start = std::chrono::high_resolution_clock::now();
-	
 	// only reason the following vars are not const is for cmd arg parsing
 	char* pslPath;
 	unsigned int maxGapLength = 13, minAlnLength = 13, minLength = 250, bucketSize = 1000;
 	const unsigned long fixedWeight = -1; // weight of breakpoints between species, -1 means MAX for uint
 	float minAlnIdentity = 0.8f;
+	parseCmdArgs(argc, argv, pslPath, minLength, maxGapLength, minAlnLength, minAlnIdentity, bucketSize);
 
-	parseCmdArgs(argc, argv, pslPath, minLength, maxGapLength, minAlnLength, minAlnIdentity);
-
+	// init maps and vectors
 	std::map<std::string, unsigned long> speciesStarts; // maps species name to their starting position in concatenated string
 	std::vector<unsigned long> speciesBoundaries; // contains starting positions in concatenated sequence
 	std::vector<std::shared_ptr<AlignmentRecord>> alignments;
@@ -36,38 +36,44 @@ int main(int argc, char** argv) {
 	std::vector<WasteRegion> wasteRegions;
 	std::vector<Region> protoAtoms;
 
+	std::cerr << "Starting: " << pslPath << " is used for segmentation with parameters:\n"
+		<< "minLength: " << minLength << ", minIdent: " << minAlnIdentity * 100 << ", maxGap: "
+		<< maxGapLength << ", minAlnLength: " << minAlnLength
+		<<  ", bucketSize: " << bucketSize << std::endl;
+	auto start = std::chrono::high_resolution_clock::now();
 	speciesStarts = { {"$", 0} };
 	parsePsl(pslPath, speciesStarts, maxGapLength, minAlnLength, minAlnIdentity, alignments);
-	std::cerr << "INFO: Sequence parsing done, found " << speciesStarts.size() - 1 << " sequences." << std::endl;
 	for (auto i : speciesStarts) speciesBoundaries.push_back(i.second);
-	std::cerr << "INFO: PSL parsing done, considering " << alignments.size() << " alignments." << std::endl;
+	std::cerr << "INFO: PSL parsing done, considering " << alignments.size() << " alignments between "
+		<< speciesStarts.size() - 1 << " sequences.";
+	shoutTime(start);
 	std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>
 		buckets((speciesStarts.find("$")->second / bucketSize) + 1); // reserve with appropiate size
 	fillBuckets(alignments, bucketSize, buckets);
-	std::cerr << "INFO: Filled " << buckets.size() << " buckets." << std::endl;
+	std::cerr << "INFO: Filled " << buckets.size() << " buckets.";
+	shoutTime(start);
 	const double epsilon = 1 / (static_cast<double>(bucketSize)*buckets.size());
 	initBreakpoints(alignments, speciesBoundaries, fixedWeight, breakPoints);
 	createWaste(breakPoints, minLength, wasteRegions);
 	atomsFromWaste(wasteRegions, protoAtoms);
-	std::cerr << "INFO: Created " << wasteRegions.size() << " initial waste regions from initial breakpoints." << std::endl;
-	IMP(protoAtoms, wasteRegions, buckets, bucketSize, minLength, epsilon);
-	std::cerr << "INFO: " << wasteRegions.size() << " after last IMP iteration." << std::endl;
+	std::cerr << "INFO: Created " << wasteRegions.size() << " initial waste regions from initial breakpoints.";
+	shoutTime(start);
+	IMP(protoAtoms, wasteRegions, buckets, bucketSize, minLength, epsilon, start);
 	std::vector<int> classes;
-	classify(wasteRegions, buckets, bucketSize, minAlnIdentity, classes);
+	int nrClasses = 0;
+	classify(wasteRegions, buckets, bucketSize, minAlnIdentity, classes, nrClasses);
+	std::cerr << "Put " << wasteRegions.size() - 1 << " atoms in " << nrClasses << " classes. "
+		<< "Printing result." << std::endl;
+	shoutTime(start);
 	printResult(wasteRegions, classes, speciesStarts);
-
-	auto end = std::chrono::high_resolution_clock::now();
-	auto diff = end - start;
-	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
-	std::cerr << "Done! Algorithm has taken " << ms << " milliseconds." << std::endl;
-
 	return EXIT_SUCCESS;
 }
 
 void IMP(std::vector<Region>& protoAtoms,
 	std::vector<WasteRegion>& wasteRegions,
 	const std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>& buckets,
-	unsigned int bucketSize, unsigned int minLength, double epsilon) {
+	unsigned int bucketSize, unsigned int minLength, double epsilon,
+	const std::chrono::time_point<std::chrono::high_resolution_clock> start) {
 	int iterationCount = 0;
 	while (true) {
 		std::vector<Region> newRegions;
@@ -121,8 +127,11 @@ void IMP(std::vector<Region>& protoAtoms,
 		if (!areDifferent(protoAtoms, newAtoms)) break; // stop if there is no improvement
 		protoAtoms = newAtoms;
 		std::cerr << "INFO: " << wasteRegions.size() << " waste regions after IMP iteration "
-			<< ++iterationCount << "." << std::endl;
+			<< ++iterationCount << ".";
+		shoutTime(start);
 	}
+	std::cerr << "IMP algorithm done.";
+	shoutTime(start);
 }
 
 void printResult(const std::vector<WasteRegion> &regions, const std::vector<int> &classes,
@@ -138,6 +147,7 @@ void printResult(const std::vector<WasteRegion> &regions, const std::vector<int>
 		names.push_back(specStart.second);
 	}
 
+	std::cout << "#name\tatom_nr\tclass\tstrand\tstart\tend" << "\n"; // header line
 	for (size_t i = 0; i + 1 < regions.size(); i++) {
 		auto j = binSearch(regions[i].last, starts);
 		auto move = starts[j];
@@ -145,8 +155,15 @@ void printResult(const std::vector<WasteRegion> &regions, const std::vector<int>
 		auto end = regions[i + 1].first - move;
 		if (end > starts[j + 1]) end = starts[j + 1];
 		auto classNr = abs(classes[i]);
-		auto strand = (classes[i] > 0) ? 1 : -1;
-		std::cout << names[j] << "\t" << i << "\t" << classNr << "\t" << strand << "\t"
+		auto strand = (classes[i] > 0) ? '+' : '-';
+		std::cout << names[j] << "\t" << i+1 << "\t" << classNr << "\t" << strand << "\t"
 			<< start << "\t" << end << "\n";
 	}
+}
+
+void shoutTime(const std::chrono::time_point<std::chrono::high_resolution_clock> start) {
+	auto end = std::chrono::high_resolution_clock::now();
+	auto diff = end - start;
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
+	std::cerr << " Time passed since start: " << ms << " milliseconds." << std::endl;
 }

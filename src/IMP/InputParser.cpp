@@ -6,22 +6,21 @@
 
 void parseCmdArgs(int argc, char** &argv, char* &pslPath,
 	unsigned int &minLengh, unsigned int &maxGap, unsigned int &minAlnLength,
-	float &minAlnIdentity) {
-	if (argc <= 1) {
+	float &minAlnIdentity, unsigned int &bucketSize) {
+	if (argc <= 0) {
 		std::cerr << "Usage: Call with at least one arguments:\n"
 			<< "atomizer <psl file> [options]\n\n"
 			<< "Optional arguments are given after their descriptor. The descriptor is NOT case-sensitive. \n"
 			<< "If an optional argument is not given, the default value will be used.\n"
 			<< "--minLength <minLength>: The minimum length an atom must have (defualt: 250).\n"
 			<< "--minIdent <minIdent>: Minimum identity an alignment must have to be considered, "
-			<< "alignments with lower identity will be skipped. Give as percent, e.g. --minIdent 100 if "
-			<< "you only want perfect alignments (default: 80).\n"
+			<< "alignments with lower identity will be skipped (default: 80).\n"
 			<< "--maxGap <maxGap>: The maximum gap length inside of an alignment. If this length is "
-			<< "exceeded, the alignment will be split into two (default: 13).\n"
+			<< "exceeded, the alignment will be split in two (default: 13).\n"
 			<< "--minAlnLength <minAlnLength>: The minimal length an alignment must have to be considered. "
-			<< "Shorter alignments are droppe. Note that this is applied after the splitting at long gaps, "
-			<< "so a sufficiently long alignment might be split into two that are two short each and "
-			<< "be completely omitted (default:13)."
+			<< "Shorter alignments are ignored (default: 13).\n"
+			<< "--bucketSize: Size of buckets used to find covering alignments, "
+			<< "increase if you run out of memory (default: 1000)."
 			<< std::endl;
 		exit(EXIT_SUCCESS);
 	}
@@ -44,6 +43,7 @@ void parseCmdArgs(int argc, char** &argv, char* &pslPath,
 			else if (arg == "--minident") minAlnIdentity = std::stoul(argv[++i]) / 100.0f;
 			else if (arg == "--maxgap") maxGap = std::stoul(argv[++i]);
 			else if (arg == "--minalnlength") minAlnLength = std::stoul(argv[++i]);
+			else if (arg == "--bucketsize") bucketSize = std::stoul(argv[++i]);
 			else {
 				std::cerr << "Unknown argument " << arg << ". Call without arguments for instructions." << std::endl;
 				exit(EXIT_FAILURE);
@@ -201,8 +201,6 @@ void parsePsl(const char * pslPath, std::map<std::string, unsigned long>& specie
 			}
 			AlignmentRecord curRec = recordFromPsl(splitLine, speciesStart);
 			if (curRec.tStart > curRec.qStart) continue; // only one version of symmetric alignments
-			if (curRec.tStart == curRec.qStart && curRec.tEnd == curRec.qEnd)
-				continue; // skip regions that are aligned to themselves
 			std::vector<AlignmentRecord> splitAlns;
 			splitRecord(curRec, maxGapLength, minAlnLength, splitAlns);
 			for (auto aln : splitAlns) {

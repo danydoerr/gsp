@@ -3,8 +3,6 @@
 #include <set>
 #include <memory>
 
-// TODO incorporate inheritance.
-
 /* Represantation of all needed information of a single psl line.
 Additionally, contains a pointer to sym, the AlignmentRecord of its inverse alignment. */
 struct AlignmentRecord {
@@ -67,7 +65,7 @@ struct WasteRegion : public Region {
 
 	/* Construct region starting and ending at pos and pushed pos to its bpPositions. */
 	WasteRegion(unsigned long pos);
-	WasteRegion(Region atom); // TODO auxiliary
+	WasteRegion(Region atom);
 	bool operator < (const WasteRegion other) {
 		if (first == other.first)
 			return last < other.last;
