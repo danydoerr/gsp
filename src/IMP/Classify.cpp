@@ -6,7 +6,8 @@
 void chooseAtom(const std::vector<WasteRegion>& regions,
 	const Region mappedAtom, unsigned int regionFirst, unsigned int regionLast,
 	Region &atomResult, unsigned int &jResult) {
-	unsigned int maxLength = 0, maxJ = 0;
+	unsigned int maxJ = 0;
+	int maxLength = 0;
 	for (auto j = regionFirst; j < regionLast; j++) {
 		int newLength;
 		if (j == regionFirst)
@@ -73,7 +74,7 @@ void constructAtomGraph(const std::vector<WasteRegion>& regions,
 			if (coverage(newAtom, aln->tStart, aln->tEnd) >= minAlnCoverage
 				&& coverage(atom, aln->qStart, aln->qEnd) >= minAlnCoverage) continue; // text and query cover both atoms
 			signed char strand = (aln->strand == '+') ? 1 : -1;
-			if (graph[i].count(jfinal)) // TODO handling this as a vector of maps might be wrong, should be map of maps
+			if (graph[i].count(jfinal))
 				graph[i].find(jfinal)->second += strand;
 			else graph[i].insert(std::make_pair(jfinal, strand));
 			if (graph[jfinal].count(i))
@@ -86,6 +87,7 @@ void constructAtomGraph(const std::vector<WasteRegion>& regions,
 		graph.pop_back();
 }
 
+/* Sets class of each atom in the connected component to classNr. */
 void fillComponent(const std::vector<std::map<unsigned int, int>> &graph,
 	std::vector<int> &classes, unsigned int i, int classNr) {
 	if (classes[i]) {
@@ -107,7 +109,7 @@ void fillComponent(const std::vector<std::map<unsigned int, int>> &graph,
 void classify(const std::vector<WasteRegion>& regions,
 	const std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>& buckets,
 	unsigned int bucketSize, float minAlnCoverage,
-	std::vector<int> &classes) {
+	std::vector<int> &classes, int &classNr) {
 	if (regions.size() < 2) {
 		std::cerr << "ERROR: Too small input region vector for atom classification.";
 		return;
@@ -115,11 +117,11 @@ void classify(const std::vector<WasteRegion>& regions,
 	std::vector<std::map<unsigned int, int>> graph(regions.size() - 1);
 	constructAtomGraph(regions, buckets, bucketSize, minAlnCoverage, graph);
 	classes.resize(regions.size() - 1, 0);
-	int classNr = 1;
+	classNr = 0;
 	for (size_t i = 0; i < regions.size()-1; i++) {
 		if (!classes[i]) {
-			fillComponent(graph, classes, i, classNr);
 			classNr++;
+			fillComponent(graph, classes, i, classNr);
 		}
 	}
 }

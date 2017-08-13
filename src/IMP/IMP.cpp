@@ -158,7 +158,7 @@ void createNewWasteRegions(const std::vector<Region>& notCovering, const std::ve
 	std::set<unsigned int> currentShortIntervals, lastShortIntervals;
 	unsigned int lastFinishedIdx = 0;
 	for (auto pos : allPos) {
-		auto position = allPositions.find(pos); // TODO just iterate over allPositions?
+		auto position = allPositions.find(pos);
 		for (auto i : position->second.notCoveringIds)
 			currentShortIntervals.insert(i);
 
