@@ -7,7 +7,7 @@
 void parseCmdArgs(int argc, char** &argv, char* &pslPath,
 	unsigned int &minLengh, unsigned int &maxGap, unsigned int &minAlnLength,
 	float &minAlnIdentity, unsigned int &bucketSize) {
-	if (argc <= 0) {
+	if (argc <= 1) {
 		std::cerr << "Usage: Call with at least one arguments:\n"
 			<< "atomizer <psl file> [options]\n\n"
 			<< "Optional arguments are given after their descriptor. The descriptor is NOT case-sensitive. \n"
