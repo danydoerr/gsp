@@ -111,7 +111,7 @@ void classify(const std::vector<WasteRegion>& regions,
 	unsigned int bucketSize, float minAlnCoverage,
 	std::vector<int> &classes, int &classNr) {
 	if (regions.size() < 2) {
-		std::cerr << "ERROR: Too small input region vector for atom classification.";
+		std::cerr << "ERROR: Too few atoms for classification.";
 		return;
 	}
 	std::vector<std::map<unsigned int, int>> graph(regions.size() - 1);

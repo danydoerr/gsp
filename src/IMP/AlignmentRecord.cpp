@@ -49,13 +49,11 @@ std::shared_ptr<AlignmentRecord> AlignmentRecord::revert() const {
 		blockCount, newBlockSizes, newQStarts, newTStarts));
 }
 
-Breakpoint::Breakpoint(unsigned long position, unsigned long weight)
-: position(position), weight(weight) {};
+Breakpoint::Breakpoint(unsigned long position)
+: position(position) {}
 
 WasteRegion::WasteRegion(unsigned long pos)
-: Region(pos,pos) {
-	bpPositions.insert(pos);
-}
+: Region(pos,pos) {}
 
 WasteRegion::WasteRegion(Region atom)
 : Region(atom.first, atom.last) {}

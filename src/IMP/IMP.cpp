@@ -66,40 +66,36 @@ void partitionCoveringRegion(const std::vector<Region>& input, unsigned int minL
 	}
 }
 
-/* Calculates the optimal cost for a new waste region set with waste regions at pos and in region.
-Previous best results for positions are stored for dynamic programming. */
-void dpFindOptimal(Region region, std::map<unsigned long, dpPosition>& allPositions,
+/* Calculates the optimal cost for a new waste region set with waste regions at pos and in closestLeftRegion.
+Best results for each position are stored for dynamic programming. */
+void dpFindOptimal(Region closestLeftRegion, std::map<unsigned long, dpPosition>& allPositions,
 	unsigned long pos, double epsilon, unsigned int minLength) {
-	std::vector<dpStats> tmp;
-	for (auto l = region.first; l <= region.last; l++) { // iterate over P(j,k)
+	std::vector<dpStats> positionCost; // contains min cost for each pos & position which achieved it
+	for (auto l = closestLeftRegion.first; l <= closestLeftRegion.last; l++) { // iterate over P(j,k)
 		if ((pos - l) < minLength) // join waste regions
-			tmp.push_back(dpStats(allPositions.find(l)->second.cost + pos - l, true, l));
+			positionCost.push_back(dpStats(allPositions.find(l)->second.cost + pos - l, true, l));
 		else {
 			bool alignedToWaste = false;
-			for (auto i : allPositions.find(l)->second.notCoveringIds) {
-				for (auto j : allPositions.find(pos)->second.notCoveringIds) {
+			for (auto i : allPositions.find(l)->second.notCoveringIds)
+				for (auto j : allPositions.find(pos)->second.notCoveringIds)
 					if (i == j) alignedToWaste = true;
-					goto endloop;
-				}
-			}
-		endloop:
-			if (alignedToWaste) tmp.push_back(dpStats(allPositions.find(l)->second.cost + pos - l, true, l));
-			else tmp.push_back(dpStats(allPositions.find(l)->second.cost + epsilon, false, l));
+			if (alignedToWaste)  // join waste regions
+				positionCost.push_back(dpStats(allPositions.find(l)->second.cost + pos - l, true, l));
+			else // don't join - create new atom in between
+				positionCost.push_back(dpStats(allPositions.find(l)->second.cost + epsilon, false, l));
 
 			// now check covering regions
 			alignedToWaste = false;
-			for (auto i : allPositions.find(l)->second.coveringIds) {
-				for (auto j : allPositions.find(pos)->second.coveringIds) {
+			for (auto i : allPositions.find(l)->second.coveringIds)
+				for (auto j : allPositions.find(pos)->second.coveringIds)
 					if (i == j) alignedToWaste = true;
-					goto endloop2;
-				}
-			}
-		endloop2:
-			if (alignedToWaste) tmp.push_back(dpStats(allPositions.find(l)->second.cost + pos - l, true, l));
-			else tmp.push_back(dpStats(allPositions.find(l)->second.cost + epsilon, false, l));
+			if (alignedToWaste)
+				positionCost.push_back(dpStats(allPositions.find(l)->second.cost + pos - l, true, l));
+			else
+				positionCost.push_back(dpStats(allPositions.find(l)->second.cost + epsilon, false, l));
 		}
 	}
-	dpStats optimal = *std::min_element(tmp.begin(), tmp.end(),
+	dpStats optimal = *std::min_element(positionCost.rbegin(), positionCost.rend(),
 		[](dpStats a, dpStats b) {return a.cost < b.cost; });
 	dpPosition* toChange = &allPositions.find(pos)->second;
 	toChange->cost = optimal.cost;
@@ -137,32 +133,33 @@ void dpTraceBack(std::map<unsigned long, dpPosition>& allPositions,
 
 void createNewWasteRegions(const std::vector<Region>& notCovering, const std::vector<Region>& covering,
 	double epsilon, unsigned int minLength, unsigned long atomStart, std::vector<Region>& result) {
-	std::set<unsigned long> allPos;
-	// stores each position contained in both region vectors
-	std::map<unsigned long, dpPosition> allPositions;
-	for (size_t i = 0; i < notCovering.size(); i++) { // collect positions of nonCovering intervals
+	std::set<unsigned long> nonCovPos; // positions in noncovering
+	std::map<unsigned long, dpPosition> allPositions; // positions in either vector
+
+	// collect positions of nonCovering intervals
+	for (size_t i = 0; i < notCovering.size(); i++) {
 		const Region* curRegion = &notCovering[i];
 		for (auto pos = curRegion->first; pos <= curRegion->last; pos++) {
-			allPos.insert(pos);
+			nonCovPos.insert(pos);
 			allPositions.insert(std::pair<int, dpPosition>(pos, dpPosition(i))).
 				first->second.notCoveringIds.push_back(i);
 		}
 	}
-	for (size_t i = 0; i < covering.size(); i++) { // add positions also contained in covering regions
+	// add positions also contained in covering regions
+	for (size_t i = 0; i < covering.size(); i++) {
 		const Region* curRegion = &covering[i];
 		for (auto pos = curRegion->first; pos <= curRegion->last; pos++)
-			if (allPositions.count(pos)) // TODO there may be a mistake here
+			if (allPositions.count(pos))
 				allPositions.find(pos)->second.coveringIds.push_back(i);
 	}
 
 	std::set<unsigned int> currentShortIntervals, lastShortIntervals;
 	unsigned int lastFinishedIdx = 0;
-	for (auto pos : allPos) {
+	for (auto pos : nonCovPos) { // iterate over all viable positions i from left to right
 		auto position = allPositions.find(pos);
 		for (auto i : position->second.notCoveringIds)
 			currentShortIntervals.insert(i);
-
-		if (pos == *(allPos.begin())) continue; // only do init for first element
+		if (pos == *(nonCovPos.begin())) continue; // only init for first (leftmost) position
 		// get ID of rightmost region not containing pos but left of pos
 		for (auto previous : lastShortIntervals)
 			if (currentShortIntervals.find(previous) == currentShortIntervals.end()) // not in set
@@ -187,8 +184,6 @@ void consolidateRegions(std::vector<WasteRegion> &regions, unsigned int minLengt
 			if (nextRegion.first <= currentRegion.last + minLength) {
 				// join regions
 				currentRegion.last = std::max(currentRegion.last, nextRegion.last);
-				for (auto breakpoint : nextRegion.bpPositions)
-					currentRegion.bpPositions.insert(breakpoint);
 			} else { // not close enough to join
 				regions.push_back(currentRegion);
 				currentRegion = nextRegion;

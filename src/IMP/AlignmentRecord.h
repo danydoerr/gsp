@@ -35,10 +35,10 @@ struct AlignmentRecord {
 
 struct Breakpoint {
 	unsigned long position;
-	unsigned long weight;
 
-	Breakpoint(unsigned long position, unsigned long weight);
+	Breakpoint(unsigned long position);
 	bool operator < (const Breakpoint other) { return position < other.position; }; // for sorting
+	bool operator == (const Breakpoint other) { return position == other.position; };
 };
 
 /* A Regions in a sequence, defined by two position (start and end). */
@@ -50,25 +50,22 @@ struct Region {
 	unsigned long getLength() const { return last - first + 1; };
 	unsigned long getMiddlePos() const { return (first + last) / 2; }
 	bool operator == (const Region other) { return last == other.last && first == other.first; };
+
 	/* Region with last position further to the right is greater.
 	If last of both is equal, region with first position further to the right is greater */
 	bool operator < (const Region other) {
-		if (last == other.last)
-			return first > other.first;
+		if (last == other.last) return first > other.first;
 		else return last < other.last;
 	}
 };
 
-/* A waste region, containing positions of the breakpoints between its start and end position. */
+/* A waste region. Basically qual to region, but sorted differently. */
 struct WasteRegion : public Region {
-	std::set<unsigned long> bpPositions;
-
-	/* Construct region starting and ending at pos and pushed pos to its bpPositions. */
 	WasteRegion(unsigned long pos);
 	WasteRegion(Region atom);
+
 	bool operator < (const WasteRegion other) {
-		if (first == other.first)
-			return last < other.last;
+		if (first == other.first) return last < other.last;
 		else return first < other.first;
 	}
 };

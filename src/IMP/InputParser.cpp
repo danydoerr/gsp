@@ -7,7 +7,7 @@
 void parseCmdArgs(int argc, char** &argv, char* &pslPath,
 	unsigned int &minLengh, unsigned int &maxGap, unsigned int &minAlnLength,
 	float &minAlnIdentity, unsigned int &bucketSize) {
-	if (argc <= 1) {
+	if (argc <= 0) {
 		std::cerr << "Usage: Call with at least one arguments:\n"
 			<< "atomizer <psl file> [options]\n\n"
 			<< "Optional arguments are given after their descriptor. The descriptor is NOT case-sensitive. \n"
@@ -201,6 +201,8 @@ void parsePsl(const char * pslPath, std::map<std::string, unsigned long>& specie
 			}
 			AlignmentRecord curRec = recordFromPsl(splitLine, speciesStart);
 			if (curRec.tStart > curRec.qStart) continue; // only one version of symmetric alignments
+			/*if (curRec.tStart == curRec.qStart && curRec.tEnd == curRec.qEnd)
+				continue; // skip alignments that align a region to itself*/
 			std::vector<AlignmentRecord> splitAlns;
 			splitRecord(curRec, maxGapLength, minAlnLength, splitAlns);
 			for (auto aln : splitAlns) {

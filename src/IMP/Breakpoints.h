@@ -5,7 +5,7 @@
 
 /* Creates initial breakpoints from alignment and species boundaries and stores them in result. */
 void initBreakpoints(const std::vector<std::shared_ptr<AlignmentRecord>>& alns,
-	const std::vector<unsigned long>& speciesBounds, unsigned long fixedWeight,
+	const std::vector<unsigned long>& speciesBounds,
 	std::vector<Breakpoint>& result);
 
 /* Stores a list of Regions in result, created from input breakpoints.

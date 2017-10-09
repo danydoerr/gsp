@@ -24,7 +24,6 @@ int main(int argc, char** argv) {
 	// only reason the following vars are not const is for cmd arg parsing
 	char* pslPath;
 	unsigned int maxGapLength = 13, minAlnLength = 13, minLength = 250, bucketSize = 1000;
-	const unsigned long fixedWeight = -1; // weight of breakpoints between species, -1 means MAX for uint
 	float minAlnIdentity = 0.8f;
 	parseCmdArgs(argc, argv, pslPath, minLength, maxGapLength, minAlnLength, minAlnIdentity, bucketSize);
 
@@ -53,7 +52,7 @@ int main(int argc, char** argv) {
 	std::cerr << "INFO: Filled " << buckets.size() << " buckets.";
 	shoutTime(start);
 	const double epsilon = 1 / (static_cast<double>(bucketSize)*buckets.size());
-	initBreakpoints(alignments, speciesBoundaries, fixedWeight, breakPoints);
+	initBreakpoints(alignments, speciesBoundaries, breakPoints);
 	createWaste(breakPoints, minLength, wasteRegions);
 	atomsFromWaste(wasteRegions, protoAtoms);
 	std::cerr << "INFO: Created " << wasteRegions.size() << " initial waste regions from initial breakpoints.";
@@ -108,8 +107,8 @@ void IMP(std::vector<Region>& protoAtoms,
 				} // end of iteration over waste in mappedRegion
 			} // end of iteration over alignments containing middlepos
 			// add waste regions at ends of atom
-			intervals.push_back(Region(atom->first - minLength - 1, atom->first - minLength - 1));
-			intervals.push_back(Region(atom->last + minLength + 1, atom->last + minLength + 1));
+			intervals.push_back(Region(atom->first, atom->first));
+			intervals.push_back(Region(atom->last, atom->last));
 			std::sort(intervals.begin(), intervals.end()); // sorting before removing duplicates
 			intervals.erase(std::unique(intervals.begin(), intervals.end()), intervals.end()); // remove duplicates
 
