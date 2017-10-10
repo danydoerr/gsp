@@ -92,7 +92,8 @@ const std::vector<unsigned long> stringVecToLongVec(const std::vector<std::strin
 /* Parses a single psl line to an AlignmentRecord. */
 const AlignmentRecord recordFromPsl(const std::vector<std::string>& pslLine,
 	std::map<std::string, unsigned long>& speciesStart) {
-	const std::string strand = pslLine[8], qName = pslLine[9], tName = pslLine[13];
+	const std::string qName = pslLine[9], tName = pslLine[13];
+	const char strand = pslLine[8].front();
 	const unsigned long qSize = std::stoul(pslLine[10]), tSize = std::stoul(pslLine[14]);
 	// check if sequences in current line were already read. If not, add them.
 	if (!speciesStart.count(qName)) {
@@ -116,7 +117,7 @@ const AlignmentRecord recordFromPsl(const std::vector<std::string>& pslLine,
 	auto qStarts = stringVecToLongVec(splitString(pslLine[19], ',', blockCount)),
 		tStarts = stringVecToLongVec(splitString(pslLine[20], ',', blockCount));
 	// shift start positions by offest. If on reverse strand, recompute query w.r.t. starts to start of sequence
-	if (strand == "+")
+	if (strand == '+')
 		for (auto i = qStarts.begin(); i != qStarts.end(); i++)
 			*i += qOffset;
 	else {
@@ -127,7 +128,7 @@ const AlignmentRecord recordFromPsl(const std::vector<std::string>& pslLine,
 	for (auto i = tStarts.begin(); i != tStarts.end(); i++)
 		*i += tOffset;
 
-	return AlignmentRecord(strand.front(), qStart, qEnd, tStart, tEnd, blockCount,
+	return AlignmentRecord(strand, qStart, qEnd, tStart, tEnd, blockCount,
 		stringVecToLongVec(splitString(pslLine[18], ',', blockCount)), // blockSizes
 		qStarts, tStarts);
 }
