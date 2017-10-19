@@ -2,9 +2,9 @@ configfile: 'config.yaml'
 
 ALF_DIR = config['alf_dir']
 N_SPECIES = config['number_of_species']
-SEQ_LEN = config['segment_lenth']
+SEQ_LEN = config['segment_length']
 N_MARKERS = config['number_of_segs']
-REPS = config['repeats']
+REPS = range(1, config['repeats']+1)
 PAMS = config['pams']
 
 IMP_DIR = config['imp_dir']
@@ -19,11 +19,18 @@ from itertools import chain
 
 rule all:
     input:
-        leave_genomes = expand('%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/leaf_genomes_dna.fa.psl' %(ALF_DIR, N_SPECIES), 
-                seqlen=SEQ_LEN, ms=N_MARKERS, n_species=N_SPECIES, rid=REPS, pam_dist=PAMS),
-        imp_result = expand('%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/cpp_i{ident}_g{gap}_al{alnlen}_b{bucket}.csv'
+        expand('%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/cpp_i{ident}_g{gap}_al{alnlen}_b{bucket}.csv'
                 %(IMP_DIR, N_SPECIES), seqlen=SEQ_LEN, ms=N_MARKERS, rid=REPS,
                 pam_dist=PAMS, ident=IMP_IDENT, gap=IMP_GAP, alnlen=IMP_ALNLEN, bucket=IMP_BUCKET)
+
+rule all_true_segmentation:
+    input:
+        leaf_genomes = expand('%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/leaf_genomes_dna.fa' %(ALF_DIR, 
+                N_SPECIES), seqlen=SEQ_LEN, ms=N_MARKERS, n_species=N_SPECIES,
+                rid=REPS, pam_dist=PAMS),
+        true_seg = expand('%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/true_segmentation.txt' %(ALF_DIR, 
+                N_SPECIES), seqlen=SEQ_LEN, ms=N_MARKERS, n_species=N_SPECIES,
+                rid=REPS, pam_dist=PAMS),
 
 rule sample_genome:
     params:
@@ -52,7 +59,8 @@ rule run_alf:
     input: 
         '%s/l{slen}_m{ns}/run{rid}_p{pam_dist}_n%s.drw' %(ALF_DIR, N_SPECIES)
     output:
-        ['%s/l{slen,\d+}_m{ns,\d+}/run{rid,\d+}_p{pam_dist,\d+}_n%s/DB/SE%03d_dna.fa' %(ALF_DIR, N_SPECIES, i+1) for i in range(N_SPECIES)]
+        ['%s/l{slen,\d+}_m{ns,\d+}/run{rid,\d+}_p{pam_dist,\d+}_n%s/DB/SE%03d_dna.fa' %(ALF_DIR, N_SPECIES, i+1) for i in range(N_SPECIES)],
+        '%s/l{slen}_m{ns}/run{rid}_p{pam_dist}_n%s/VP.tgz' %(ALF_DIR, N_SPECIES)
     shell:
         '%s/alf.run.sh {input};' %SCRIPTS + 
         'i="{input}";'
@@ -60,6 +68,18 @@ rule run_alf:
         '   rm -rf "${{i%.drw}}";'
         '   mv "${{i%.drw}}_1" "${{i%.drw}}";'
         'fi'
+
+rule unpack_VP:
+    input:
+        archive = '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/VP.tgz' %(ALF_DIR, N_SPECIES)
+    output:
+        '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/VP/HP.drw' %(ALF_DIR, N_SPECIES),
+        '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/VP/OP.drw' %(ALF_DIR, N_SPECIES),
+        '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/VP/PP.drw' %(ALF_DIR, N_SPECIES),
+        '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/VP/XP.drw' %(ALF_DIR, N_SPECIES)
+    shell:
+        'tar -xzf {input} -C $(dirname {input})'
+
 
 rule alf_output_to_genome:
     input:
@@ -69,17 +89,28 @@ rule alf_output_to_genome:
     shell:
         '%s/alf.genomes2dna.py {input} > {output}' %SCRIPTS
 
-
 rule concat_alf_genomes:	
     input:
-        leave_genomes = chain('%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/DB/SE%03d_dna_gen.fa' %(ALF_DIR, N_SPECIES, i+1)
+        leaf_genomes = chain('%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/DB/SE%03d_dna_gen.fa' %(ALF_DIR, N_SPECIES, i+1)
                 for i in range(N_SPECIES))
     output:
-        temp('%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/leaf_genomes_dna.fa' %(ALF_DIR, N_SPECIES))
+        '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/leaf_genomes_dna.fa' %(ALF_DIR, N_SPECIES)
     shell:
         'cat {input} > {output}'
 
 
+rule alf_to_segmentation:
+    input:
+        leaf_genomes = chain('%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/DB/SE%03d_dna.fa' %(ALF_DIR, N_SPECIES, i+1)
+                for i in range(N_SPECIES)),
+        homologies = '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/VP/HP.drw' %(ALF_DIR, N_SPECIES)
+    output:
+        '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/true_segmentation.txt' %(ALF_DIR, N_SPECIES)
+    shell:
+        '%s/alf.genomes2segmentation.py {input.leaf_genomes} ' %SCRIPTS + 
+        '{input.homologies} > {output} 2> /dev/null'
+        
+        
 rule align_alf_output:
     input:
         '%s/l{seqlen}_m{ms}/run{rid}_p{pam_dist}_n%s/leaf_genomes_dna.fa' %(ALF_DIR, N_SPECIES)
