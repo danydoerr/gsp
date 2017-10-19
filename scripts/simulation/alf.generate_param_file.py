@@ -75,7 +75,7 @@ NSpecies := %s:
 
 # parameters concerning the substitution models
 substModels := [SubstitutionModel('CPAM'), SubstitutionModel('TN93', [0.8, 0.8, 0.8], [seq(0.25, 4)], true)];
-indelModels := [IndelModel(0.000003, ZIPF, [1.821], 50), IndelModel(0.00003, ZIPF, [1.821], 50)];
+indelModels := [IndelModel(0.0003, ZIPF, [1.821], 50), IndelModel(0.0003, ZIPF, [1.821], 50)];
 rateVarModels := [RateVarModel(Gamma, 5, 0.01, 1), RateVarModel(Gamma, 3, 0.01, 5)];
 
 seqTypes := [[1,1,1, 'marker'], [2,2,2, 'inter_marker']]:
@@ -104,15 +104,15 @@ geneLossRate := 0.0001;
 numberLoss := 5;
 
 # parameters concerning genome rearrangement
-invers := 0.004;
-invSize := 200;
-transloc := 0.002;
-transSize := 100;
+invers := 0.0004;
+invSize := 5; #200;
+transloc := 0.0002;
+transSize := 5; #100;
 invtrans := 0.1;
 numberFusion := 0;
 
 # only output relevant data
-simOutput := {'VP', 'Fasta'};
+simOutput := {'VP', 'Fasta', 'MSA'};
 """ %(args[0].rsplit('.', 1)[0], options.pam, options.nspecies, dbName, options.pam, options.nspecies, ', '.join(map(str,
     seqTypes))) 
 
