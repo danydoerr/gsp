@@ -7,9 +7,8 @@
 void parseCmdArgs(int argc, char** &argv, char* &pslPath,
 	unsigned int &minLengh, unsigned int &maxGap, unsigned int &minAlnLength,
 	float &minAlnIdentity, unsigned int &bucketSize) {
-	if (argc <= 0) {
-		std::cerr << "Usage: Call with at least one arguments:\n"
-			<< "atomizer <psl file> [options]\n\n"
+	if (argc <= 1) {
+		std::cerr << "Usage: atomizer <psl file> [options]\n\n"
 			<< "Optional arguments are given after their descriptor. The descriptor is NOT case-sensitive. \n"
 			<< "If an optional argument is not given, the default value will be used.\n"
 			<< "--minLength <minLength>: The minimum length an atom must have (defualt: 250).\n"
@@ -201,9 +200,10 @@ void parsePsl(const char * pslPath, std::map<std::string, unsigned long>& specie
 				exit(EXIT_FAILURE);
 			}
 			AlignmentRecord curRec = recordFromPsl(splitLine, speciesStart);
-			if (curRec.tStart > curRec.qStart) continue; // only one version of symmetric alignments
-			/*if (curRec.tStart == curRec.qStart && curRec.tEnd == curRec.qEnd)
-				continue; // skip alignments that align a region to itself*/
+			/* removed these filters for now - filter input psl by hand instead when needed
+			 * if (curRec.tStart > curRec.qStart) continue; // only one version of symmetric alignments 
+			 * if (curRec.tStart == curRec.qStart && curRec.tEnd == curRec.qEnd)
+			 *	continue; // skip alignments that align a region to itself*/
 			std::vector<AlignmentRecord> splitAlns;
 			splitRecord(curRec, maxGapLength, minAlnLength, splitAlns);
 			for (auto aln : splitAlns) {
