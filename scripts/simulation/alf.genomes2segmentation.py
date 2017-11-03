@@ -1,130 +1,154 @@
 #!/usr/bin/env python
-#author: mhnrchs
-#partly inspired from dany's alf.genomes2dna.py
+#author: dany,mhnrchs
 
-import sys
+from sys import stdout, stderr, exit
 from optparse import OptionParser
+from os.path import basename
+from copy import deepcopy
 import re
+
+
+import networkx as nx
 from Bio import SeqIO
 
-FASTA_HEADER_PAT = re.compile('^(G\d+_SE\d+), sequence type: (.*), locus: (-?\d+)$') # from dany's script
+FASTA_HEADER_PAT = re.compile('^G\d+_(SE\d+), sequence type: (.*), locus: (-?\d+)$') # from dany's script
+FILE_PAT = re.compile('SE(\d+)')
 
-def setBreakpoint(bps, cls, tailClass):
-	if bps[cls] == -1: return # breakpoint was already evident, nothing to do
-	if bps[cls] == 0:	# class not yet seen, set class of neighbor at tail
-		bps[cls] = tailClass
-	else:
-		if bps[cls] != tailClass:
-			bps[cls] = -1 # breakpoint evident, set it
+
+def readSequences(files):
+    seqs = [] # seqs [i][j] = [seq_name, locus, length, positionInFile, class] for gene j in genome i
+    for f in files: # iterate over input files (except last one, it's the homology matrix)
+        atoms = []
+        pos = 1
+        for rec in SeqIO.parse(open(f), 'fasta'): # iterate over records
+            desc = FASTA_HEADER_PAT.match(rec.description)
+            seq_name = desc.group(1)
+            locus = int(desc.group(3))
+            atoms.append([seq_name, locus, len(rec), pos, None])
+            pos += 1
+        # sort atoms by locus
+        atoms.sort(key = lambda x: abs(x[1]))
+        seqs.append(atoms)
+    return seqs
+
+
+def readHomologies(data):
+    f = open(data)
+    line = f.readlines()[1]
+    line = line[6:-2]
+    # homologies[a][b][c] = list of genes in genome b homologous to gene c in genome a
+    return eval(line)
+
+
+def assignClasses(seqs, homologies):
+
+    G = nx.Graph()
+    for i in xrange(len(homologies)):
+        for j in xrange(i, len(homologies)):
+            for x in xrange(len(homologies[i][j])):
+                for y in homologies[i][j][x]:
+                    G.add_edge((i, x), (j, y-1))
+
+    f = -1
+    cls2pos = list()
+    for C in nx.connected_components(G):
+        f += 1
+        cls2pos.append(list(C))
+        for Gx, x in C:
+            seqs[Gx][x][4] = f
+
+    return cls2pos
+
+def mergeAtoms(seqs, cls2pos):
+    # create copy of seqs
+    seqs = deepcopy(seqs)
+
+    for c in xrange(len(cls2pos)):
+        pos = cls2pos[c]
+        right_neighbors = set()
+        i = 0
+        while len(right_neighbors) < 2 and i < len(pos):
+            Gx, x = pos[i]
+            if seqs[Gx][x][1] > 0:
+                if x == len(seqs[Gx])-1:
+                    right_neighbors.add(None)
+                else:
+                    right_neighbors.add((seqs[Gx][x+1][4], seqs[Gx][x+1][1] < 0
+                        and -1 or 1))
+            else:
+                if x < 1:
+                    right_neighbors.add(None)
+                else:
+                    right_neighbors.add((seqs[Gx][x-1][4], seqs[Gx][x-1][1] < 0
+                        and -1 or 1))
+            i += 1
+
+        if len(right_neighbors) == 1 and next(iter(right_neighbors)) != None:
+            # merge atoms into one
+            print >> stderr, '++ merge neighboring families %s and %s' %(c,
+                    next(iter(right_neighbors))[0])
+            for Gx, x in pos:
+                if seqs[Gx][x][1] < 0:
+                    new_a = seqs[Gx][x-1]
+                    new_a[2] += seqs[Gx][x][2]
+                    if type(new_a[3]) == int:
+                        new_a[3] = [new_a[3]]
+                    if type(seqs[Gx][x][3]) == int:
+                        seqs[Gx][x][3] = [seqs[Gx][x][3]]
+                    new_a[3] = seqs[Gx][x][3] + new_a[3]
+                    y = x
+                else:
+                    new_a = seqs[Gx][x]
+                    new_a[2] += seqs[Gx][x+1][2]
+                    if type(new_a[3]) == int:
+                        new_a[3] = [new_a[3]]
+                    if type(seqs[Gx][x+1][3]) == int:
+                        seqs[Gx][x+1][3] = [seqs[Gx][x+1][3]]
+                    new_a[3].extend(seqs[Gx][x+1][3])
+                    y = x+1
+                old_c = seqs[Gx][y][4]
+                while y < len(seqs[Gx]) and seqs[Gx][y][4] == old_c:
+                    seqs[Gx][y] = new_a
+                    y += 1
+    return seqs
+
+
+def printSeqs(seqs, out):
+    print >> out, '\t'.join(('GENOME', 'START', 'END', 'STRAND', 'FAMILY', 'POS_IN_FASTA'))
+    for atoms in seqs:
+        start = 0
+        for i in xrange(len(atoms)):
+            if not i or atoms[i-1] != atoms[i]:
+                Gx, locus, length, pos, c = atoms[i]
+                if type(pos) != int:
+                    pos = ','.join(map(str, pos))
+                print >> out, '\t'.join(map(str, (Gx, start+1, start+length,
+                    locus < 0 and '-' or '+', c, pos)))
+                start += length
 
 if __name__ == '__main__':
-	usage = 'usage: %prog <ALF SIMULATED DNA files> <homology matrix>\n\
-Call with several files as arguments or append files into one.\n\
-Be sure to input files in correct order though.'
-	parser = OptionParser(usage=usage)
-	(options, args) = parser.parse_args()
+    usage = 'usage: %prog <ALF SIMULATED DNA FILE 1> .. <ALF SIMULATED DNA ' + \
+            'FILE N> <homology matrix>'
+    parser = OptionParser(usage=usage)
+    (options, args) = parser.parse_args()
 
-	if len(args) < 1:
-		parser.print_help()
-		exit(1)
+    if len(args) < 2:
+        parser.print_help()
+        exit(1)
 
+    ## parse sequence input
+    files = sorted(args[:-1], key=lambda x:
+            int(FILE_PAT.match(basename(x)).group(1)))
+    seqs = readSequences(files)
 
-	## parse sequence input
-	seq_name = ""
-	seqs = [] # seqs [i][j] = [seq_name, locus, length, positionInFile, class] for gene j in genome i
-	locus = 0
-	for arg in args[:-1]: # iterate over input files except last one
-		posInFile = 0
-		atoms = []
-		for rec in SeqIO.parse(open(arg), 'fasta'): # iterate over records
-			posInFile += 1
-			desc = FASTA_HEADER_PAT.match(rec.description)
-			seq_name = re.search('_(.*), s', rec.description).group(1)
-			locus = int(desc.group(3))
-			atoms.append ([seq_name, locus,len(rec)-1,posInFile,0])
-		seqs.append(atoms)
-	# sort by locus for each sequence
-	for i in range (len(seqs)):
-		seqs[i] = sorted(seqs[i], key = lambda x: abs(x[1]))
-	
-	
-	## parse homologies
-	f = open(args[-1])
-	line = f.readlines()[1]
-	line = line[6:-2]
-	homologies = eval(line)	# homologies[a][b][c] = list of genes in genome b homologous to gene c in genome a
-	nrGenomes = len(homologies)
-	currentClass = 1
-	for i in range(nrGenomes):
-		atoms = seqs[i]
-		for (name, locus, length, posInFile, cls) in atoms:
-			if (cls > 0): continue # was already classified
-			seqs[i][abs(locus)-1][4] = currentClass
-			for j in range(nrGenomes):
-				for homLocus in homologies[i][j][abs(locus)-1]:
-					seqs[j][homLocus-1][4] = currentClass
-			currentClass += 1
-			
-	for i in range (100):
-		for j in range (5):
-			print seqs[j][i][4],
-		print
+    ## parse homologies
+    homologies = readHomologies(args[-1])
 
+    ## group atoms into classes according to homology assignment
+    cls2pos = assignClasses(seqs, homologies)
 
-	## find evident breakpoints
-	breakpoints = [0] * (currentClass) # if breakpoints[0][10] == -1, there is a breakpoint before members of class 10
-	# idea: for every segment, let c be its class. check the neighbor class. If two predeccors don't match, there is a breakpoint.
-	seqNr = 0
-	for atoms in seqs:
-		for j in range(1,len(atoms)-1):
-			locus = atoms[j][0]
-			nextLocus = atoms[j+1][0]
-			cls = atoms[j][4]
-			neighborClass = sys.maxint 	# for segments at sequence start/end
-			if locus > 0: # check right neighbor
-				neighborClass = atoms[j-1][4]
-				setBreakpoint(breakpoints, cls, neighborClass)
-			else: # check left neighbor
-				neighborClass = atoms[j+1][4]
-				setBreakpoint(breakpoints, cls, neighborClass)
-		seqNr += 1
-		
-	print breakpoints
+    mergedSeqs = mergeAtoms(seqs, cls2pos)
 
-	## build result by joining segments with no breakpoint between them
-	result = []
-	count = 0
-	strand = ''
-	seqNr = 0
-	for atoms in seqs:
-		curPos = 0
-		endPos = -1 # this needs to be -1 for init due to the +1 in else below
-		lastPos = atoms[0][3]
-		lastName = atoms[0][0]
-		for (name, locus, length, posInFile, cls) in atoms:
-			lastAtom = atoms[abs(locus)-2] # -1 for the one before, another -1 because indexing starts at 0
-			strand = '+' if lastAtom[1] >= 0 else '-'
-			if breakpoints[cls] == -1: # make a new segment if a breakpoint is evident
-				count += 1
-				result.append((name, count, locus-1, strand, curPos, endPos, lastAtom[4]))
-				curPos = endPos + 1
-				endPos = curPos
-			else: # go on to next locus
-				endPos += 1
-			endPos += length
-			lastPos = posInFile
-		# append last segment
-		count += 1
-		lastLocus = atoms[-1][1]
-		lastClass = atoms[-1][4]
-		result.append((lastName, count, lastLocus, '+' if lastLocus >= 0 else '-', curPos, endPos, lastClass))
-		seqNr += 1
-	
-	## print result
-	for (name,count,locus,strand,start,end, cls) in result:
-		print (name + '\t' +		# sequence name
-			str(count) + '\t' +		# atom number
-			str(cls) + '\t' +		# class nr
-			strand + '\t' +			# strand
-			str(start) + '\t' + 	# atom start
-			str(end))				# atom end
+    ## print result
+    printSeqs(mergedSeqs, stdout)
+    

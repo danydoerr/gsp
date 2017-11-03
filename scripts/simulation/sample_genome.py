@@ -66,10 +66,10 @@ if __name__ == '__main__':
     random_codon = lambda x: ''.join(choice(CODONS) for _ in xrange(x))
 
     n = int(args[0])
-    marker_len = [int(options.min + gamma(0.7, 600)) for _ in xrange(n)]
+    marker_len = [int(options.min + gamma(0.7, options.min)) for _ in xrange(n)]
     marker_len = [max(m/3 * 3, 6) for m in marker_len]
     inter_marker_len = map(lambda x: x >= options.min and x or 0,
-            [int(gamma(0.7, 5000)) for _ in xrange(n+options.chrs)])
+            [int(gamma(0.7, 2*options.min)) for _ in xrange(n+options.chrs)])
     chromosome_len = [gamma(7.5, 1) for _ in xrange(options.chrs)]
     s = sum(chromosome_len)
     chromosome_len = [int(round(n*x/s)) for x in chromosome_len]
