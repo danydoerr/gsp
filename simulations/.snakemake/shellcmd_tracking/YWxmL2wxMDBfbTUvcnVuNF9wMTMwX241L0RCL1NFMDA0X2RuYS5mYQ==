@@ -1,1 +1,0 @@
-../scripts/simulation/alf.run.sh alf/l100_m5/run4_p130_n5.drw;i="alf/l100_m5/run4_p130_n5.drw";if [ ! -e "alf/l100_m5/run4_p130_n5/DB/SE001_dna.fa" -a -d "${i%.drw}_1" ]; then   rm -rf "${i%.drw}";   mv "${i%.drw}_1" "${i%.drw}";fi

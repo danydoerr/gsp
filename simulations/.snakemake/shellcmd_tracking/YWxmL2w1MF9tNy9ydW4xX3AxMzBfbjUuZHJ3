@@ -1,1 +1,0 @@
-../scripts/simulation/alf.generate_param_file.py -p 130 -n 5 alf/l50_m7/run1.fna > alf/l50_m7/run1_p130_n5.drw

@@ -1,1 +1,0 @@
-../scripts/simulation/alf.genomes2dna.py alf/l100_m5/run4_p110_n5/DB/SE002_dna.fa > alf/l100_m5/run4_p110_n5/DB/SE002_dna_gen.fa

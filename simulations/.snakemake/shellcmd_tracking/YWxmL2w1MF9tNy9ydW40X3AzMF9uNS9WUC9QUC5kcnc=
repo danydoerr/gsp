@@ -1,1 +1,0 @@
-tar -xzf alf/l50_m7/run4_p30_n5/VP.tgz -C $(dirname alf/l50_m7/run4_p30_n5/VP.tgz)

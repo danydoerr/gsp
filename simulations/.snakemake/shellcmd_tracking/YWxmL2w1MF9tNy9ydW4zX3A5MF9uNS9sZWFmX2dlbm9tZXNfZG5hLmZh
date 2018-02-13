@@ -1,1 +1,0 @@
-cat alf/l50_m7/run3_p90_n5/DB/SE001_dna_gen.fa alf/l50_m7/run3_p90_n5/DB/SE002_dna_gen.fa alf/l50_m7/run3_p90_n5/DB/SE003_dna_gen.fa alf/l50_m7/run3_p90_n5/DB/SE004_dna_gen.fa alf/l50_m7/run3_p90_n5/DB/SE005_dna_gen.fa > alf/l50_m7/run3_p90_n5/leaf_genomes_dna.fa
