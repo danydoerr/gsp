@@ -1,0 +1,142 @@
+Synthetic evolution
+-------------------
+
+first organism (biological sequences): 12 proteins with 79 aa (average)
+height of tree: 70.00, Speciations: 5
+Gene duplication rate: 0.00, transloc. Dupl.: 0.50
+Gene loss rate: 0.00
+Inversion rate: 0.00, max. Inversion group size: 5.00, inverted Translocation: 0.10
+Translocation rate: 0.00, max. Translocation group size: 5.00
+
+
+something interesting is happening here...
+time 0.0000: speciation event of organism 1 to organism 2
+time 0.8790: deletion of length 5 in org/gene 1/4
+time 11.2612: insertion of length 1 in org/gene 1/8
+time 8.4001: deletion of length 3 in org/gene 1/12
+time 11.3812: speciation event of organism 1 to organism 3
+time 15.1589: insertion of length 1 in org/gene 3/3
+time 15.5133: insertion of length 1 in org/gene 3/6
+time 19.0803: deletion of length 4 in org/gene 3/9
+time 13.5393: insertion of length 4 in org/gene 3/11
+time 19.9447: speciation event of organism 3 to organism 4
+time 37.2425: translocation of size 2 in organism 4. source: 7, destination: 4
+time 24.9682: insertion of length 1 in org/gene 3/3
+time 33.9613: insertion of length 2 in org/gene 3/5
+time 21.1596: deletion of length 1 in org/gene 3/6
+time 22.9875: insertion of length 2 in org/gene 3/6
+time 42.3587: deletion of length 2 in org/gene 3/6
+time 61.5261: insertion of length 1 in org/gene 3/6
+time 32.2870: insertion of length 1 in org/gene 3/7
+time 45.3514: insertion of length 1 in org/gene 3/7
+time 21.6616: deletion of length 3 in org/gene 3/8
+time 27.2594: insertion of length 4 in org/gene 3/8
+time 28.9733: insertion of length 1 in org/gene 3/8
+time 36.6669: deletion of length 1 in org/gene 3/8
+time 38.2716: deletion of length 1 in org/gene 3/8
+time 39.3749: deletion of length 2 in org/gene 3/8
+time 41.6858: insertion of length 4 in org/gene 3/8
+time 45.2296: deletion of length 3 in org/gene 3/8
+time 48.4347: insertion of length 1 in org/gene 3/8
+time 49.3534: insertion of length 1 in org/gene 3/8
+time 32.6404: insertion of length 2 in org/gene 3/10
+time 25.4730: deletion of length 3 in org/gene 3/11
+time 25.9664: deletion of length 1 in org/gene 3/12
+time 32.1681: deletion of length 1 in org/gene 3/12
+time 53.5192: deletion of length 1 in org/gene 3/12
+time 63.8680: speciation event of organism 3 to organism 5
+time 34.0626: deletion of length 1 in org/gene 1/1
+time 37.0047: insertion of length 2 in org/gene 1/1
+time 60.7544: insertion of length 4 in org/gene 1/1
+time 66.8951: deletion of length 1 in org/gene 1/1
+time 67.1156: insertion of length 1 in org/gene 1/2
+time 15.8332: insertion of length 1 in org/gene 1/3
+time 16.7751: insertion of length 1 in org/gene 1/3
+time 26.9740: insertion of length 1 in org/gene 1/3
+time 56.7532: deletion of length 1 in org/gene 1/3
+time 58.8085: deletion of length 23 in org/gene 1/3
+time 62.6131: insertion of length 3 in org/gene 1/3
+time 17.1607: insertion of length 2 in org/gene 1/4
+time 28.5221: deletion of length 1 in org/gene 1/6
+time 46.4222: deletion of length 4 in org/gene 1/6
+time 16.0977: insertion of length 9 in org/gene 1/8
+time 16.1980: deletion of length 1 in org/gene 1/8
+time 17.0300: deletion of length 1 in org/gene 1/8
+time 19.1301: insertion of length 2 in org/gene 1/8
+time 29.0341: insertion of length 1 in org/gene 1/8
+time 34.6574: deletion of length 1 in org/gene 1/8
+time 39.3426: deletion of length 5 in org/gene 1/8
+time 43.5263: insertion of length 1 in org/gene 1/8
+time 49.9637: insertion of length 1 in org/gene 1/8
+time 66.4935: deletion of length 1 in org/gene 1/8
+time 67.9281: insertion of length 1 in org/gene 1/8
+time 35.3754: deletion of length 1 in org/gene 1/11
+time 45.4617: deletion of length 1 in org/gene 1/11
+time 47.0071: insertion of length 5 in org/gene 1/12
+time 50.0435: deletion of length 1 in org/gene 1/12
+time 52.5173: insertion of length 1 in org/gene 1/12
+time 53.1313: deletion of length 1 in org/gene 1/12
+time 63.9452: deletion of length 1 in org/gene 1/12
+time 33.5265: deletion of length 2 in org/gene 2/1
+time 8.2757: insertion of length 7 in org/gene 2/3
+time 14.8425: deletion of length 6 in org/gene 2/3
+time 21.8492: deletion of length 33 in org/gene 2/3
+time 25.0679: deletion of length 1 in org/gene 2/3
+time 25.6139: insertion of length 1 in org/gene 2/3
+time 31.3773: deletion of length 2 in org/gene 2/3
+time 39.5276: deletion of length 1 in org/gene 2/3
+time 39.5462: deletion of length 1 in org/gene 2/3
+time 55.2313: insertion of length 1 in org/gene 2/3
+time 27.4355: deletion of length 2 in org/gene 2/4
+time 17.5661: deletion of length 8 in org/gene 2/6
+time 22.8446: insertion of length 2 in org/gene 2/6
+time 35.0928: insertion of length 1 in org/gene 2/6
+time 3.1514: deletion of length 2 in org/gene 2/8
+time 7.1806: deletion of length 10 in org/gene 2/8
+time 21.5748: insertion of length 1 in org/gene 2/8
+time 23.2142: insertion of length 2 in org/gene 2/8
+time 38.1029: insertion of length 1 in org/gene 2/8
+time 52.0794: deletion of length 1 in org/gene 2/8
+time 61.6300: insertion of length 1 in org/gene 2/8
+time 62.1644: insertion of length 1 in org/gene 2/8
+time 64.6829: deletion of length 1 in org/gene 2/8
+time 65.7945: deletion of length 1 in org/gene 2/8
+time 43.5129: deletion of length 6 in org/gene 2/10
+time 9.7915: deletion of length 39 in org/gene 2/12
+time 11.4661: insertion of length 6 in org/gene 2/12
+time 18.4504: insertion of length 1 in org/gene 2/12
+time 19.0260: insertion of length 1 in org/gene 2/12
+time 19.8170: insertion of length 1 in org/gene 2/12
+time 28.5255: deletion of length 1 in org/gene 2/12
+time 38.0990: deletion of length 1 in org/gene 2/12
+time 44.8412: insertion of length 17 in org/gene 2/12
+time 30.5764: deletion of length 19 in org/gene 4/1
+time 27.5577: deletion of length 2 in org/gene 4/3
+time 37.3106: insertion of length 1 in org/gene 4/3
+time 35.4880: insertion of length 2 in org/gene 4/6
+time 48.6309: deletion of length 1 in org/gene 4/6
+time 52.5034: insertion of length 2 in org/gene 4/6
+time 58.7514: insertion of length 2 in org/gene 4/6
+time 20.6953: deletion of length 1 in org/gene 4/8
+time 29.6289: deletion of length 1 in org/gene 4/8
+time 34.8419: insertion of length 3 in org/gene 4/8
+time 45.0180: deletion of length 1 in org/gene 4/8
+time 52.5627: insertion of length 27 in org/gene 4/8
+time 60.8408: deletion of length 1 in org/gene 4/8
+time 61.8919: insertion of length 1 in org/gene 4/8
+time 63.1805: insertion of length 9 in org/gene 4/8
+time 28.9321: insertion of length 1 in org/gene 4/9
+time 30.3285: deletion of length 1 in org/gene 4/9
+time 45.6834: insertion of length 6 in org/gene 4/9
+time 64.5278: deletion of length 1 in org/gene 4/9
+time 20.2107: deletion of length 1 in org/gene 4/12
+time 44.2026: deletion of length 1 in org/gene 4/12
+time 44.9962: insertion of length 1 in org/gene 4/12
+time 47.8653: deletion of length 1 in org/gene 4/12
+time 69.8914: insertion of length 1 in org/gene 5/10
+time 64.1056: insertion of length 2 in org/gene 5/12
+
+
+
+60 genes in 5 species generated
+0 gene duplications resulting in 0 genes

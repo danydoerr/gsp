@@ -1,0 +1,1 @@
+mkdir -p alf/l50_m5;../scripts/simulation/sample_genome.py -c 1 -l 50 5 > alf/l50_m5/run1.fna

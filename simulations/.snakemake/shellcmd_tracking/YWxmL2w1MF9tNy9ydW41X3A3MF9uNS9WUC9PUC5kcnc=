@@ -1,0 +1,1 @@
+tar -xzvf alf/l50_m7/run5_p70_n5/VP.tgz -C $(dirname alf/l50_m7/run5_p70_n5/VP.tgz)

@@ -1,0 +1,52 @@
+
+mname := 'alf/l50_m7/run4_p70_n5':
+unitIsPam := true:
+realorganism := 'alf/l50_m7/run4.db'; # real genome db as first organism
+treeType := 'BDTree':
+birthRate := 0.01:
+deathRate := 0.001:
+mutRate := 70:        # PAM distance from origin to recent species (for random trees)
+scaleTree := true: 
+NSpecies := 5:
+
+# parameters concerning the substitution models
+substModels := [SubstitutionModel('CPAM'), SubstitutionModel('TN93', [0.8, 0.8, 0.8], [seq(0.25, 4)], true)];
+indelModels := [IndelModel(0.0003, ZIPF, [1.821], 50), IndelModel(0.0003, ZIPF, [1.821], 50)];
+rateVarModels := [RateVarModel(Gamma, 5, 0.01, 1), RateVarModel(Gamma, 3, 0.01, 5)];
+
+seqTypes := [[1,1,1, 'marker'], [2,2,2, 'inter_marker']]:
+seqTypeAssignments := [1, 1, 2, 1, 2, 1, 1, 1, 2, 1];
+
+modelSwitchS := [[1.0, 0], [0, 1.0]]:
+modelSwitchD := [[1.0, 0], [0, 1.0]]:
+
+# parameters concerning gene duplication
+geneDuplRate := 0.0001;
+numberDupl := 5;
+transDupl := 0.5;
+fissionDupl := 0.1;
+fusionDupl := 0.1;
+P_pseudogene := 0.2;
+ratefac_pseudogene := 0.9;
+P_neofunc := 0.5;
+ratefac_neofunc := 1.5;
+life_neofunc := 10;
+P_subfunc := 0.3;
+ratefac_subfunc := 1.2;
+life_subfunc := 10;
+
+# parameters concerning gene loss
+geneLossRate := 0.0001;
+numberLoss := 5;
+
+# parameters concerning genome rearrangement
+invers := 0.0004;
+invSize := 5; #200;
+transloc := 0.0002;
+transSize := 5; #100;
+invtrans := 0.1;
+numberFusion := 0;
+
+# only output relevant data
+simOutput := {'VP', 'Fasta', 'MSA'};
+
