@@ -10,3 +10,5 @@ bin:
 debug:
 	$(CC) $(DEBUG_FLAGS) *.cpp -o atomizer_debug
 
+clean:
+	rm -f atomizer atomizer_debug
