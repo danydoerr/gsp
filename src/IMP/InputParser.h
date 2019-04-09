@@ -8,7 +8,7 @@
 /* Parses command line arguments or prints help if none are given. */
 void parseCmdArgs(int argc, char** &argv, char* &pslPath,
 	unsigned int &minLengh, unsigned int &maxGap, unsigned int &minAlnLength,
-	float &minAlnIdentity, unsigned int &bucketSize);
+	float &minAlnIdentity, unsigned int &bucketSize, unsigned int &numThreads);
 
 /* Reads a psl file. 
 Each line is parsed to an AlignmentRecord. Pointers to all records are stored in result.

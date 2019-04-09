@@ -6,7 +6,7 @@
 
 void parseCmdArgs(int argc, char** &argv, char* &pslPath,
 	unsigned int &minLengh, unsigned int &maxGap, unsigned int &minAlnLength,
-	float &minAlnIdentity, unsigned int &bucketSize) {
+	float &minAlnIdentity, unsigned int &bucketSize, unsigned int &numThreads) {
 	if (argc <= 1) {
 		std::cerr << "Usage: atomizer <psl file> [options]\n\n"
 			<< "Optional arguments are given after their descriptor. The descriptor is NOT case-sensitive. \n"
@@ -19,7 +19,8 @@ void parseCmdArgs(int argc, char** &argv, char* &pslPath,
 			<< "--minAlnLength <minAlnLength>: The minimal length an alignment must have to be considered. "
 			<< "Shorter alignments are ignored (default: 13).\n"
 			<< "--bucketSize: Size of buckets used to find covering alignments, "
-			<< "increase if you run out of memory (default: 1000)."
+			<< "increase if you run out of memory (default: 1000).\n"
+			<< "--numThreads: Number of threads to run IMP algorithm (default: 1)."
 			<< std::endl;
 		exit(EXIT_SUCCESS);
 	}
@@ -43,6 +44,7 @@ void parseCmdArgs(int argc, char** &argv, char* &pslPath,
 			else if (arg == "--maxgap") maxGap = std::stoul(argv[++i]);
 			else if (arg == "--minalnlength") minAlnLength = std::stoul(argv[++i]);
 			else if (arg == "--bucketsize") bucketSize = std::stoul(argv[++i]);
+			else if (arg == "--numthreads") numThreads = std::stoul(argv[++i]);
 			else {
 				std::cerr << "Unknown argument " << arg << ". Call without arguments for instructions." << std::endl;
 				exit(EXIT_FAILURE);
