@@ -14,7 +14,8 @@
 void IMP(std::vector<Region>& , std::vector<WasteRegion>&,
 	const std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>&,
 	unsigned int, unsigned int, double,
-	const std::chrono::time_point<std::chrono::high_resolution_clock>);
+	const std::chrono::time_point<std::chrono::high_resolution_clock>,
+	unsigned int);
 void printResult(const std::vector<WasteRegion>&,
 	const std::vector<int>&, 
 	const std::map<std::string, unsigned long>&);
@@ -23,9 +24,9 @@ void shoutTime(const std::chrono::time_point<std::chrono::high_resolution_clock>
 int main(int argc, char** argv) {
 	// only reason the following vars are not const is for cmd arg parsing
 	char* pslPath;
-	unsigned int maxGapLength = 13, minAlnLength = 13, minLength = 250, bucketSize = 1000;
+	unsigned int maxGapLength = 13, minAlnLength = 13, minLength = 250, bucketSize = 1000, numThreads = 1;
 	float minAlnIdentity = 0.8f;
-	parseCmdArgs(argc, argv, pslPath, minLength, maxGapLength, minAlnLength, minAlnIdentity, bucketSize);
+	parseCmdArgs(argc, argv, pslPath, minLength, maxGapLength, minAlnLength, minAlnIdentity, bucketSize, numThreads);
 
 	// init maps and vectors
 	std::map<std::string, unsigned long> speciesStarts; // maps species name to their starting position in concatenated string
@@ -57,7 +58,7 @@ int main(int argc, char** argv) {
 	atomsFromWaste(wasteRegions, protoAtoms);
 	std::cerr << "INFO: Created " << wasteRegions.size() << " initial waste regions from initial breakpoints.";
 	shoutTime(start);
-	IMP(protoAtoms, wasteRegions, buckets, bucketSize, minLength, epsilon, start);
+	IMP(protoAtoms, wasteRegions, buckets, bucketSize, minLength, epsilon, start, numThreads);
 	std::vector<int> classes;
 	int nrClasses = 0;
 	classify(wasteRegions, buckets, bucketSize, minAlnIdentity, classes, nrClasses);
@@ -72,10 +73,16 @@ void IMP(std::vector<Region>& protoAtoms,
 	std::vector<WasteRegion>& wasteRegions,
 	const std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>& buckets,
 	unsigned int bucketSize, unsigned int minLength, double epsilon,
-	const std::chrono::time_point<std::chrono::high_resolution_clock> start) {
+	const std::chrono::time_point<std::chrono::high_resolution_clock> start,
+	unsigned int numThreads) {
+	
+	auto startIMP = std::chrono::high_resolution_clock::now();
+	
 	int iterationCount = 0;
 	while (true) {
+		#pragma omp declare reduction (merge : std::vector<Region> : omp_out.insert(omp_out.end(), omp_in.begin(), omp_in.end()))
 		std::vector<Region> newRegions;
+		#pragma omp parallel for num_threads(numThreads) reduction(merge: newRegions)
 		for (size_t i = 0; i < protoAtoms.size(); i++) { // iterate over all current atoms
 			Region* atom = &protoAtoms[i];
 			unsigned long bucketIdx = atom->getMiddlePos() / bucketSize;
@@ -130,6 +137,11 @@ void IMP(std::vector<Region>& protoAtoms,
 		shoutTime(start);
 	}
 	std::cerr << "IMP algorithm done.";
+
+	auto endIMP = std::chrono::high_resolution_clock::now();
+	auto timeIMP = std::chrono::duration_cast<std::chrono::milliseconds>(endIMP - startIMP).count();
+	std::cerr << " Algorithm time: " << timeIMP << " milliseconds.";
+	
 	shoutTime(start);
 }
 
