@@ -1,11 +1,12 @@
 CC = g++
-CFLAGS = -std=c++14 -Wall -g -O2
+CFLAGS = -std=c++14 -Wall -O3 -fopenmp
+DEBUG_FLAGS = -std=c++14 -Wall -g -fopenmp
 
 all: bin debug
 
 bin:
-	$(CC) $(CFLAGS) *.cpp -o atomizer -fopenmp -O3
+	$(CC) $(CFLAGS) *.cpp -o atomizer
 
 debug:
-	$(CC) $(CFLAGS) *.cpp -g -o atomizer_debug -fopenmp
+	$(CC) $(DEBUG_FLAGS) *.cpp -o atomizer_debug
 
