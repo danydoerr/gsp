@@ -1,6 +1,15 @@
 #pragma once
 
+#include <chrono>
+#include "Breakpoints.h"
 #include "AlignmentRecord.h"
+
+/* Runs the IMP algorithm */
+void IMP(std::vector<Region>& , std::vector<WasteRegion>&,
+	const std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>&,
+	unsigned int, unsigned int, double,
+	const std::chrono::time_point<std::chrono::high_resolution_clock>,
+	unsigned int);
 
 /* Returns index of the last element in xList that is <= x.
 If all elements in xList are > x, result is 0. Expects xList to be sorted ascending. */
