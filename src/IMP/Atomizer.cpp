@@ -14,7 +14,7 @@
 
 int main(int argc, char** argv) {
 	// only reason the following vars are not const is for cmd arg parsing
-	char* pslPath;
+	std::vector<char*> pslPath;
 	unsigned int maxGapLength = 13, minAlnLength = 13, minLength = 250, bucketSize = 1000, numThreads = 1;
 	float minAlnIdentity = 0.8f;
 	parseCmdArgs(argc, argv, pslPath, minLength, maxGapLength, minAlnLength, minAlnIdentity, bucketSize, numThreads);
@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 	std::vector<WasteRegion> wasteRegions;
 	std::vector<Region> protoAtoms;
 
-	std::cerr << "Starting: " << pslPath << " is used for segmentation with parameters:\n"
+	std::cerr << "Starting with parameters:\n"
 		<< "minLength: " << minLength << ", minIdent: " << minAlnIdentity * 100 << ", maxGap: "
 		<< maxGapLength << ", minAlnLength: " << minAlnLength
 		<<  ", bucketSize: " << bucketSize << std::endl;

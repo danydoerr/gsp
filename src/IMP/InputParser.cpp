@@ -4,11 +4,12 @@
 #include <stdexcept>
 #include <algorithm>
 
-void parseCmdArgs(int argc, char** &argv, char* &pslPath,
+void parseCmdArgs(int argc, char** &argv, std::vector<char*> &pslPath,
 	unsigned int &minLengh, unsigned int &maxGap, unsigned int &minAlnLength,
 	float &minAlnIdentity, unsigned int &bucketSize, unsigned int &numThreads) {
 	if (argc <= 1) {
-		std::cerr << "Usage: atomizer <psl file> [options]\n\n"
+		std::cerr << "Usage: atomizer <psl file(s)> [options]\n\n"
+                        << "Multiple input psl files may be given, but always as first arguments.\n"
 			<< "Optional arguments are given after their descriptor. The descriptor is NOT case-sensitive. \n"
 			<< "If an optional argument is not given, the default value will be used.\n"
 			<< "--minLength <minLength>: The minimum length an atom must have (defualt: 250).\n"
@@ -34,7 +35,8 @@ void parseCmdArgs(int argc, char** &argv, char* &pslPath,
 		std::cerr << "Insufficient arguments, call without arguments to get instructions." << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	pslPath = argv[1];
+        for (int i = 1; i <= mandatoryArgs; i++)
+            pslPath.push_back(argv[i]);
 	for (int i = mandatoryArgs + 1; i < argc; i++) {
 		std::string arg = argv[i];
 		std::transform(arg.begin(), arg.end(), arg.begin(), tolower);
@@ -174,55 +176,59 @@ void splitRecord(const AlignmentRecord &aln,
 		result.push_back(splitRec);
 }
 
-void parsePsl(const char * pslPath, std::map<std::string, unsigned long>& speciesStart,
+void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>& speciesStart,
 	unsigned int maxGapLength, unsigned int minAlnLength, float minAlnIdentity,
 	std::vector<std::shared_ptr<AlignmentRecord>>& result) {
 	std::ifstream pslFile;
-	pslFile.open(pslPath);
-	if (pslFile.is_open()) {
-		std::string line;
-		while (std::getline(pslFile, line)) {
-			if (line.front() == '#') continue; // skip comments
-			auto splitLine = splitString(line, '\t', 21);
-			if (splitLine.size() != 21) {
-				std::cerr << "ERROR: read illegal line while reading psl file. Line was:" << std::endl;
-				std::cerr << line << std::endl;
-				exit(EXIT_FAILURE);
-			}
-			try { // skip low quality alignments
-				int matches = std::stoi(splitLine[0]) + std::stoi(splitLine[2]); // matches + repMatches
-				if (matches == 0) continue;
-				int all = matches + std::stoi(splitLine[1]); // + misMatches
-				if (static_cast<float>(matches) / static_cast<float>(all) < minAlnIdentity) continue;
-			}
-			catch (std::invalid_argument) {
-				std::cerr << "ERROR: invalid argument when parsing matches while reading psl." << std::endl;
-				std::cerr << "These three should be numbers: " << splitLine[0] << ", " << splitLine[2]
-					<< ", " << splitLine[1] << std::endl;
-				exit(EXIT_FAILURE);
-			}
-			AlignmentRecord curRec = recordFromPsl(splitLine, speciesStart);
-			/* removed these filters for now - filter input psl by hand instead when needed
-			 * if (curRec.tStart > curRec.qStart) continue; // only one version of symmetric alignments 
-			 * if (curRec.tStart == curRec.qStart && curRec.tEnd == curRec.qEnd)
-			 *	continue; // skip alignments that align a region to itself*/
-			std::vector<AlignmentRecord> splitAlns;
-			splitRecord(curRec, maxGapLength, minAlnLength, splitAlns);
-			for (auto aln : splitAlns) {
-				std::shared_ptr<AlignmentRecord> a(new AlignmentRecord(aln));
-				std::shared_ptr<AlignmentRecord> rev(aln.revert());
-				a->sym = rev;
-				rev->sym = a;
-				result.push_back(a);
-				result.push_back(rev);
-			}
-		}
-		pslFile.close();
-	}
-	else {
-		std::cerr << "ERROR: psl file could not be opened!" << std::endl;
-		exit(EXIT_FAILURE);
-	}
+        for (auto psl : pslPath) {
+            std::cerr << "Reading " << psl << "... ";
+            pslFile.open(psl);
+            if (pslFile.is_open()) {
+                    std::string line;
+                    while (std::getline(pslFile, line)) {
+                            if (line.front() == '#') continue; // skip comments
+                            auto splitLine = splitString(line, '\t', 21);
+                            if (splitLine.size() != 21) {
+                                    std::cerr << "ERROR: read illegal line while reading psl file. Line was:" << std::endl;
+                                    std::cerr << line << std::endl;
+                                    exit(EXIT_FAILURE);
+                            }
+                            try { // skip low quality alignments
+                                    int matches = std::stoi(splitLine[0]) + std::stoi(splitLine[2]); // matches + repMatches
+                                    if (matches == 0) continue;
+                                    int all = matches + std::stoi(splitLine[1]); // + misMatches
+                                    if (static_cast<float>(matches) / static_cast<float>(all) < minAlnIdentity) continue;
+                            }
+                            catch (std::invalid_argument) {
+                                    std::cerr << "ERROR: invalid argument when parsing matches while reading psl." << std::endl;
+                                    std::cerr << "These three should be numbers: " << splitLine[0] << ", " << splitLine[2]
+                                            << ", " << splitLine[1] << std::endl;
+                                    exit(EXIT_FAILURE);
+                            }
+                            AlignmentRecord curRec = recordFromPsl(splitLine, speciesStart);
+                            /* removed these filters for now - filter input psl by hand instead when needed
+                             * if (curRec.tStart > curRec.qStart) continue; // only one version of symmetric alignments 
+                             * if (curRec.tStart == curRec.qStart && curRec.tEnd == curRec.qEnd)
+                             *	continue; // skip alignments that align a region to itself*/
+                            std::vector<AlignmentRecord> splitAlns;
+                            splitRecord(curRec, maxGapLength, minAlnLength, splitAlns);
+                            for (auto aln : splitAlns) {
+                                    std::shared_ptr<AlignmentRecord> a(new AlignmentRecord(aln));
+                                    std::shared_ptr<AlignmentRecord> rev(aln.revert());
+                                    a->sym = rev;
+                                    rev->sym = a;
+                                    result.push_back(a);
+                                    result.push_back(rev);
+                            }
+                    }
+                    pslFile.close();
+                    std::cerr << "Done." << std::endl;
+            }
+            else {
+                    std::cerr << "ERROR: psl file could not be opened!" << std::endl;
+                    exit(EXIT_FAILURE);
+            }
+        }
 }
 
 void fillBuckets(std::vector<std::shared_ptr<AlignmentRecord>>& alns, unsigned int bucketSize,
