@@ -187,26 +187,30 @@ void dpTraceBack(std::map<unsigned long, dpPosition>& allPositions,
 	unsigned long lastPos, unsigned long atomFirst, std::vector<Region>& result) {
 	unsigned long currentPos = allPositions.find(lastPos)->second.prev;
 	dpPosition *posData = &(allPositions.find(currentPos)->second);
-	std::vector<std::pair<bool, Region>> tmpRegions;
+	std::vector<bool> tmpRegionBools;
+        bool is_first = true;
 	while (currentPos >= atomFirst) {
-		if (tmpRegions.empty())
-			tmpRegions.push_back(std::make_pair(posData->dist, Region(currentPos, currentPos)));
+		if (is_first) {
+                        result.push_back(Region(currentPos, currentPos));
+			tmpRegionBools.push_back(posData->dist);
+                        is_first = false;
+                }
 		else {
-			std::pair<bool, Region> *tmp = &tmpRegions.back();
-			if (tmp->first) {
-				tmp->second.first = currentPos;
-				tmp->first = posData->dist;
+                        bool tmpBool = tmpRegionBools.back();
+                        Region *tmpRegion = &result.back();
+			if (tmpBool) {
+				tmpRegion->first = currentPos;
+                                tmpRegionBools[tmpRegionBools.size()-1] = posData->dist;
 			}
 			else {
-				tmpRegions.push_back(std::make_pair(posData->dist, Region(currentPos, currentPos)));
+                                tmpRegionBools.push_back(posData->dist);
+				result.push_back(Region(currentPos, currentPos));
 			}
 		}
 		if (!currentPos) break; // atom starts at 0
 		currentPos = posData->prev;
 		posData = &(allPositions.find(currentPos)->second);
 	}
-	for (auto i : tmpRegions)
-		result.push_back(i.second);
 }
 
 void createNewWasteRegions(const std::vector<Region>& notCovering, const std::vector<Region>& covering,
@@ -231,22 +235,24 @@ void createNewWasteRegions(const std::vector<Region>& notCovering, const std::ve
 				allPositions.find(pos)->second.coveringIds.push_back(i);
 	}
 
-	std::set<unsigned int> currentShortIntervals, lastShortIntervals;
+	std::set<unsigned int> *currentShortIntervals = new std::set<unsigned int>(), *lastShortIntervals = new std::set<unsigned int>();
 	unsigned int lastFinishedIdx = 0;
 	for (auto pos : nonCovPos) { // iterate over all viable positions i from left to right
 		auto position = allPositions.find(pos);
 		for (auto i : position->second.notCoveringIds)
-			currentShortIntervals.insert(i);
+			currentShortIntervals->insert(i);
 		if (pos == *(nonCovPos.begin())) continue; // only init for first (leftmost) position
 		// get ID of rightmost region not containing pos but left of pos
-		for (auto previous : lastShortIntervals)
-			if (currentShortIntervals.find(previous) == currentShortIntervals.end()) // not in set
+		for (auto previous : *lastShortIntervals)
+			if (currentShortIntervals->find(previous) == currentShortIntervals->end()) // not in set
 				lastFinishedIdx = previous;
 		dpFindOptimal(notCovering[lastFinishedIdx], allPositions, pos, epsilon, minLength);
-		lastShortIntervals = currentShortIntervals;
-		currentShortIntervals.clear();
+		delete lastShortIntervals;
+                lastShortIntervals = currentShortIntervals; //lastShortIntervals = currentShortIntervals;
+		currentShortIntervals = new std::set<unsigned int>(); //currentShortIntervals.clear();
 	}
 	dpTraceBack(allPositions, notCovering.back().last, atomStart, result);
+        delete lastShortIntervals; delete currentShortIntervals;
 }
 
 void consolidateRegions(std::vector<WasteRegion> &regions, unsigned int minLength) {

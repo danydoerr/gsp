@@ -12,7 +12,7 @@ struct AlignmentRecord {
 	unsigned long tStart; // alignment start position in target
 	unsigned long tEnd; // alignment end position in target
 	unsigned int blockCount; // number of blocks in aln
-	std::vector<unsigned long> blockSizes; // size of each block
+	std::vector<unsigned int> blockSizes; // size of each block
 	std::vector<unsigned long> qStarts; // start position of each block in query
 	std::vector<unsigned long> tStarts; // start position of each block in target
 	std::shared_ptr<AlignmentRecord> sym; // pointer to inverse alignment
@@ -21,7 +21,7 @@ struct AlignmentRecord {
 	AlignmentRecord(char strand,
 		unsigned long qStart, unsigned long qEnd,
 		unsigned long tStart, unsigned long tEnd,
-		unsigned int blockCount, std::vector<unsigned long> blockSizes,
+		unsigned int blockCount, std::vector<unsigned int> blockSizes,
 		std::vector<unsigned long> qStarts, std::vector<unsigned long> tStarts);
 	bool operator < (const AlignmentRecord other) { return tEnd < other.tEnd; }; // for sorting
 

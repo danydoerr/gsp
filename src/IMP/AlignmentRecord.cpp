@@ -4,7 +4,7 @@
 AlignmentRecord::AlignmentRecord(char strand,
 	unsigned long qStart, unsigned long qEnd,
 	unsigned long tStart, unsigned long tEnd,
-	unsigned int blockCount, std::vector<unsigned long> blockSizes,
+	unsigned int blockCount, std::vector<unsigned int> blockSizes,
 	std::vector<unsigned long> qStarts, std::vector<unsigned long> tStarts)
 	: strand(strand), qStart(qStart), qEnd(qEnd), tStart(tStart), tEnd(tEnd),
 	blockCount(blockCount), blockSizes(blockSizes), qStarts(qStarts), tStarts(tStarts), sym(nullptr) {}
@@ -32,7 +32,8 @@ void AlignmentRecord::printRecord() const {
 
 std::shared_ptr<AlignmentRecord> AlignmentRecord::revert() const {
 	// all it really does is swap query and target
-	std::vector<unsigned long> newBlockSizes, newQStarts, newTStarts;
+	std::vector<unsigned int> newBlockSizes;
+        std::vector<unsigned long> newQStarts, newTStarts;
 	if (strand == '+') {
 		newBlockSizes = blockSizes;
 		newQStarts = tStarts;

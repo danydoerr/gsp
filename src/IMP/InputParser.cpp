@@ -92,6 +92,30 @@ const std::vector<unsigned long> stringVecToLongVec(const std::vector<std::strin
 	return result;
 }
 
+inline unsigned int stoui(const std::string& s)
+{
+        unsigned long lresult = stoul(s, 0, 10);
+        unsigned int result = lresult;
+        if (result != lresult) throw std::range_error("Cannot fit this number in an int: " + s);
+        return result;
+}
+
+/* Turns input vector of strings into a vector of numbers.
+Will end the program if one of the strings does not represent an integer number. */
+const std::vector<unsigned int> stringVecToIntVec(const std::vector<std::string>& input) {
+	std::vector<unsigned int> result;
+	for (auto i : input) {
+		try {
+			result.push_back(stoui(i));
+		}
+		catch (std::invalid_argument) {
+			std::cerr << "ERROR: Input parser failed to parse string to long, input was " << i << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	return result;
+}
+
 /* Parses a single psl line to an AlignmentRecord. */
 const AlignmentRecord recordFromPsl(const std::vector<std::string>& pslLine,
 	std::map<std::string, unsigned long>& speciesStart) {
@@ -132,7 +156,7 @@ const AlignmentRecord recordFromPsl(const std::vector<std::string>& pslLine,
 		*i += tOffset;
 
 	return AlignmentRecord(strand, qStart, qEnd, tStart, tEnd, blockCount,
-		stringVecToLongVec(splitString(pslLine[18], ',', blockCount)), // blockSizes
+		stringVecToIntVec(splitString(pslLine[18], ',', blockCount)), // blockSizes
 		qStarts, tStarts);
 }
 
@@ -149,8 +173,8 @@ const AlignmentRecord cutRecord(const AlignmentRecord &aln, unsigned int startBl
 		qEnd = aln.qStarts[startBlock];
 	}
 	unsigned int blockCount = endBlock - startBlock + 1;
-	std::vector<unsigned long> blockSizes(aln.blockSizes.begin() + startBlock, aln.blockSizes.begin() + endBlock + 1),
-		qStarts(aln.qStarts.begin() + startBlock, aln.qStarts.begin() + endBlock + 1),
+	std::vector<unsigned int> blockSizes(aln.blockSizes.begin() + startBlock, aln.blockSizes.begin() + endBlock + 1);
+        std::vector<unsigned long> qStarts(aln.qStarts.begin() + startBlock, aln.qStarts.begin() + endBlock + 1),
 		tStarts(aln.tStarts.begin() + startBlock, aln.tStarts.begin() + endBlock + 1);
 	return AlignmentRecord(aln.strand, qStart, qEnd, tStart, tEnd, blockCount, blockSizes, qStarts, tStarts);
 }
@@ -179,6 +203,7 @@ void splitRecord(const AlignmentRecord &aln,
 void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>& speciesStart,
 	unsigned int maxGapLength, unsigned int minAlnLength, float minAlnIdentity,
 	std::vector<std::shared_ptr<AlignmentRecord>>& result) {
+        //unsigned long max_bsize = 0;
 	std::ifstream pslFile;
         for (auto psl : pslPath) {
             std::cerr << "Reading " << psl << "... ";
@@ -212,6 +237,9 @@ void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>&
                              *	continue; // skip alignments that align a region to itself*/
                             std::vector<AlignmentRecord> splitAlns;
                             splitRecord(curRec, maxGapLength, minAlnLength, splitAlns);
+                            //for (auto size : curRec.blockSizes)
+                                //if (size > max_bsize)
+                                    //max_bsize = size;
                             for (auto aln : splitAlns) {
                                     std::shared_ptr<AlignmentRecord> a(new AlignmentRecord(aln));
                                     std::shared_ptr<AlignmentRecord> rev(aln.revert());
@@ -229,6 +257,7 @@ void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>&
                     exit(EXIT_FAILURE);
             }
         }
+        //std::cout << "MAX SIZE: " << max_bsize << std::endl;
 }
 
 void fillBuckets(std::vector<std::shared_ptr<AlignmentRecord>>& alns, unsigned int bucketSize,
