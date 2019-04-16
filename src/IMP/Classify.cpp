@@ -44,7 +44,7 @@ float coverage(const Region atom, unsigned long sndStart, unsigned long sndEnd) 
 
 /* Connects atoms only if they are aligned to each other and exceed minAlnCoverage. */
 void constructAtomGraph(const std::vector<WasteRegion>& regions,
-	const std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>& buckets,
+	const std::vector<std::vector<AlignmentRecord *>>& buckets,
 	unsigned int bucketSize, float minAlnCoverage,
 	std::vector<std::map<unsigned int, int>> &graph) {
 	for (size_t i = 0; i < regions.size() - 1; i++) {
@@ -107,7 +107,7 @@ void fillComponent(const std::vector<std::map<unsigned int, int>> &graph,
 }
 
 void classify(const std::vector<WasteRegion>& regions,
-	const std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>& buckets,
+	const std::vector<std::vector<AlignmentRecord *>>& buckets,
 	unsigned int bucketSize, float minAlnCoverage,
 	std::vector<int> &classes, int &classNr) {
 	if (regions.size() < 2) {

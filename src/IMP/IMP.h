@@ -6,7 +6,7 @@
 
 /* Runs the IMP algorithm */
 void IMP(std::vector<Region>& , std::vector<WasteRegion>&,
-	const std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>&,
+	const std::vector<std::vector<AlignmentRecord *>>&,
 	unsigned int, unsigned int, double,
 	const std::chrono::time_point<std::chrono::high_resolution_clock>,
 	unsigned int);

@@ -30,7 +30,7 @@ void AlignmentRecord::printRecord() const {
 		". This ones tStart according to sym is " << sym->sym->tStart << "\n";
 }
 
-std::shared_ptr<AlignmentRecord> AlignmentRecord::revert() const {
+AlignmentRecord *AlignmentRecord::revert() const {
 	// all it really does is swap query and target
 	std::vector<unsigned int> newBlockSizes;
         std::vector<unsigned long> newQStarts, newTStarts;
@@ -46,8 +46,8 @@ std::shared_ptr<AlignmentRecord> AlignmentRecord::revert() const {
 			newBlockSizes.push_back(blockSizes[i]);
 		}
 	}
-	return std::shared_ptr<AlignmentRecord>(new AlignmentRecord(strand, tStart, tEnd, qStart, qEnd,
-		blockCount, newBlockSizes, newQStarts, newTStarts));
+	return new AlignmentRecord(strand, tStart, tEnd, qStart, qEnd,
+		blockCount, newBlockSizes, newQStarts, newTStarts);
 }
 
 Breakpoint::Breakpoint(unsigned long position)

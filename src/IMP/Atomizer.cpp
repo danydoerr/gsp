@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
 	// init maps and vectors
 	std::map<std::string, unsigned long> speciesStarts; // maps species name to their starting position in concatenated string
 	std::vector<unsigned long> speciesBoundaries; // contains starting positions in concatenated sequence
-	std::vector<std::shared_ptr<AlignmentRecord>> alignments;
+	std::vector<AlignmentRecord *> alignments;
 	std::vector<Breakpoint> breakPoints;
 	std::vector<WasteRegion> wasteRegions;
 	std::vector<Region> protoAtoms;
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 	std::cerr << "INFO: PSL parsing done, considering " << alignments.size() << " alignments between "
 		<< speciesStarts.size() - 1 << " sequences.";
 	shoutTime(start);
-	std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>
+	std::vector<std::vector<AlignmentRecord *>>
 		buckets((speciesStarts.find("$")->second / bucketSize) + 1); // reserve with appropiate size
 	fillBuckets(alignments, bucketSize, buckets);
 	std::cerr << "INFO: Filled " << buckets.size() << " buckets.";
@@ -57,5 +57,7 @@ int main(int argc, char** argv) {
 		<< "Printing result." << std::endl;
 	shoutTime(start);
 	printResult(wasteRegions, classes, speciesStarts);
+        for (auto aln : alignments)
+            delete aln;
 	return EXIT_SUCCESS;
 }

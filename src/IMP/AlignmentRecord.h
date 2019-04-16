@@ -15,7 +15,7 @@ struct AlignmentRecord {
 	std::vector<unsigned int> blockSizes; // size of each block
 	std::vector<unsigned long> qStarts; // start position of each block in query
 	std::vector<unsigned long> tStarts; // start position of each block in target
-	std::shared_ptr<AlignmentRecord> sym; // pointer to inverse alignment
+	AlignmentRecord *sym; // pointer to inverse alignment
 
 	/* Constructor. */
 	AlignmentRecord(char strand,
@@ -30,7 +30,7 @@ struct AlignmentRecord {
 	unsigned long getLength() const { return tEnd - tStart; };
 
 	/* Calculates AlignmentRecord of the inverse alignment and returns a pointer to it. */
-	std::shared_ptr<AlignmentRecord> revert() const;
+	AlignmentRecord *revert() const;
 };
 
 struct Breakpoint {

@@ -202,7 +202,7 @@ void splitRecord(const AlignmentRecord &aln,
 
 void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>& speciesStart,
 	unsigned int maxGapLength, unsigned int minAlnLength, float minAlnIdentity,
-	std::vector<std::shared_ptr<AlignmentRecord>>& result) {
+	std::vector<AlignmentRecord *>& result) {
         //unsigned long max_bsize = 0;
 	std::ifstream pslFile;
         for (auto psl : pslPath) {
@@ -241,8 +241,8 @@ void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>&
                                 //if (size > max_bsize)
                                     //max_bsize = size;
                             for (auto aln : splitAlns) {
-                                    std::shared_ptr<AlignmentRecord> a(new AlignmentRecord(aln));
-                                    std::shared_ptr<AlignmentRecord> rev(aln.revert());
+                                    AlignmentRecord *a = new AlignmentRecord(aln);
+                                    AlignmentRecord *rev = aln.revert();
                                     a->sym = rev;
                                     rev->sym = a;
                                     result.push_back(a);
@@ -260,8 +260,8 @@ void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>&
         //std::cout << "MAX SIZE: " << max_bsize << std::endl;
 }
 
-void fillBuckets(std::vector<std::shared_ptr<AlignmentRecord>>& alns, unsigned int bucketSize,
-	std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>& result) {
+void fillBuckets(std::vector<AlignmentRecord *>& alns, unsigned int bucketSize,
+	std::vector<std::vector<AlignmentRecord *>>& result) {
 	unsigned int firstBucket, lastBucket;
 	for (auto alnPtr : alns) {
 		firstBucket = alnPtr->tStart / bucketSize;

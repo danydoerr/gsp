@@ -10,7 +10,7 @@
 
 void IMP(std::vector<Region>& protoAtoms,
 	std::vector<WasteRegion>& wasteRegions,
-	const std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>& buckets,
+	const std::vector<std::vector<AlignmentRecord *>>& buckets,
 	unsigned int bucketSize, unsigned int minLength, double epsilon,
 	const std::chrono::time_point<std::chrono::high_resolution_clock> start,
 	unsigned int numThreads) {
