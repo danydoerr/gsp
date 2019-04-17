@@ -223,7 +223,7 @@ void createNewWasteRegions(const std::vector<Region>& notCovering, const std::ve
 		const Region* curRegion = &notCovering[i];
 		for (auto pos = curRegion->first; pos <= curRegion->last; pos++) {
 			nonCovPos.insert(pos);
-			allPositions.insert(std::pair<int, dpPosition>(pos, dpPosition(i))).
+			allPositions.insert(std::pair<unsigned long, dpPosition>(pos, dpPosition(i))).
 				first->second.notCoveringIds.push_back(i);
 		}
 	}
