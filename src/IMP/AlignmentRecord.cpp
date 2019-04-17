@@ -4,10 +4,10 @@
 AlignmentRecord::AlignmentRecord(char strand,
 	unsigned long qStart, unsigned long qEnd,
 	unsigned long tStart, unsigned long tEnd,
-	unsigned int blockCount, std::vector<unsigned int> blockSizes,
-	std::vector<unsigned long> qStarts, std::vector<unsigned long> tStarts)
+	std::vector<unsigned int> blockSizes,
+	std::vector<align_rec_block_t> qStarts, std::vector<align_rec_block_t> tStarts)
 	: strand(strand), qStart(qStart), qEnd(qEnd), tStart(tStart), tEnd(tEnd),
-	blockCount(blockCount), blockSizes(blockSizes), qStarts(qStarts), tStarts(tStarts), sym(nullptr) {}
+	blockSizes(blockSizes), qStarts(qStarts), tStarts(tStarts), sym(nullptr) {}
 
 void AlignmentRecord::printRecord() const {
 	std::cout << "Strand: " << strand << "\n";
@@ -15,7 +15,7 @@ void AlignmentRecord::printRecord() const {
 	std::cout << "qEnd: " << qEnd << "\n";
 	std::cout << "tStart: " << tStart << "\n";
 	std::cout << "tEnd: " << tEnd << "\n";
-	std::cout << "blockCount: " << blockCount << "\n";
+	std::cout << "blockCount: " << blockCount() << "\n";
 	std::cout << "blockSizes: ";
 	for (auto i : blockSizes) std::cout << i << ",";
 	std::cout << std::endl;
@@ -33,7 +33,7 @@ void AlignmentRecord::printRecord() const {
 AlignmentRecord *AlignmentRecord::revert() const {
 	// all it really does is swap query and target
 	std::vector<unsigned int> newBlockSizes;
-        std::vector<unsigned long> newQStarts, newTStarts;
+        std::vector<align_rec_block_t> newQStarts, newTStarts;
 	if (strand == '+') {
 		newBlockSizes = blockSizes;
 		newQStarts = tStarts;
@@ -47,7 +47,7 @@ AlignmentRecord *AlignmentRecord::revert() const {
 		}
 	}
 	return new AlignmentRecord(strand, tStart, tEnd, qStart, qEnd,
-		blockCount, newBlockSizes, newQStarts, newTStarts);
+		newBlockSizes, newQStarts, newTStarts);
 }
 
 Breakpoint::Breakpoint(unsigned long position)

@@ -3,6 +3,9 @@
 #include <set>
 #include <memory>
 
+// Type used for storing block sizes and starts in alignment records
+#define align_rec_block_t unsigned long
+
 /* Represantation of all needed information of a single psl line.
 Additionally, contains a pointer to sym, the AlignmentRecord of its inverse alignment. */
 struct AlignmentRecord {
@@ -11,18 +14,18 @@ struct AlignmentRecord {
 	unsigned long qEnd; // alignment end position in query
 	unsigned long tStart; // alignment start position in target
 	unsigned long tEnd; // alignment end position in target
-	unsigned int blockCount; // number of blocks in aln
+	//unsigned int blockCount; // number of blocks in aln (not needed, we can just check blockSizes.size()
 	std::vector<unsigned int> blockSizes; // size of each block
-	std::vector<unsigned long> qStarts; // start position of each block in query
-	std::vector<unsigned long> tStarts; // start position of each block in target
+	std::vector<align_rec_block_t> qStarts; // start position of each block in query
+	std::vector<align_rec_block_t> tStarts; // start position of each block in target
 	AlignmentRecord *sym; // pointer to inverse alignment
 
 	/* Constructor. */
 	AlignmentRecord(char strand,
 		unsigned long qStart, unsigned long qEnd,
 		unsigned long tStart, unsigned long tEnd,
-		unsigned int blockCount, std::vector<unsigned int> blockSizes,
-		std::vector<unsigned long> qStarts, std::vector<unsigned long> tStarts);
+		std::vector<unsigned int> blockSizes,
+		std::vector<align_rec_block_t> qStarts, std::vector<align_rec_block_t> tStarts);
 	bool operator < (const AlignmentRecord other) { return tEnd < other.tEnd; }; // for sorting
 
 	/* Prints all attributes of an AlignmentRecord to STDOUT. */
@@ -31,6 +34,9 @@ struct AlignmentRecord {
 
 	/* Calculates AlignmentRecord of the inverse alignment and returns a pointer to it. */
 	AlignmentRecord *revert() const;
+        
+        /* Returns the number of blocks (old blockCount member variable) */
+        inline unsigned int blockCount() const { return blockSizes.size(); }; // this would be implicitly inline in a classes, not sure in structs
 };
 
 struct Breakpoint {

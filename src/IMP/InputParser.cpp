@@ -79,7 +79,7 @@ const std::vector<std::string> splitString(const std::string& input, const char 
 /* Turns input vector of strings into a vector of numbers.
 Will end the program if one of the strings does not represent an integer number. */
 const std::vector<unsigned long> stringVecToLongVec(const std::vector<std::string>& input) {
-	std::vector<unsigned long> result;
+	std::vector<unsigned long> result(input.size());
 	for (auto i : input) {
 		try {
 			result.push_back(std::stoul(i));
@@ -103,7 +103,7 @@ inline unsigned int stoui(const std::string& s)
 /* Turns input vector of strings into a vector of numbers.
 Will end the program if one of the strings does not represent an integer number. */
 const std::vector<unsigned int> stringVecToIntVec(const std::vector<std::string>& input) {
-	std::vector<unsigned int> result;
+	std::vector<unsigned int> result(input.size());
 	for (auto i : input) {
 		try {
 			result.push_back(stoui(i));
@@ -155,14 +155,14 @@ const AlignmentRecord recordFromPsl(const std::vector<std::string>& pslLine,
 	for (auto i = tStarts.begin(); i != tStarts.end(); i++)
 		*i += tOffset;
 
-	return AlignmentRecord(strand, qStart, qEnd, tStart, tEnd, blockCount,
+	return AlignmentRecord(strand, qStart, qEnd, tStart, tEnd,
 		stringVecToIntVec(splitString(pslLine[18], ',', blockCount)), // blockSizes
 		qStarts, tStarts);
 }
 
 /* Returns a part of the input AlignmentRecord, from startBlock to endBlock, including both. */
 const AlignmentRecord cutRecord(const AlignmentRecord &aln, unsigned int startBlock, unsigned int endBlock) {
-	if (startBlock == 0 && endBlock == aln.blockCount - 1) return aln;
+	if (startBlock == 0 && endBlock == aln.blockCount() - 1) return aln;
 	unsigned long qStart, qEnd, tStart = aln.tStarts[startBlock],
 		tEnd = aln.tStarts[endBlock] + aln.blockSizes[endBlock];
 	if (aln.strand == '+') {
@@ -172,11 +172,11 @@ const AlignmentRecord cutRecord(const AlignmentRecord &aln, unsigned int startBl
 		qStart = aln.qStarts[endBlock] - aln.blockSizes[endBlock];
 		qEnd = aln.qStarts[startBlock];
 	}
-	unsigned int blockCount = endBlock - startBlock + 1;
+	//unsigned int blockCount = endBlock - startBlock + 1;
 	std::vector<unsigned int> blockSizes(aln.blockSizes.begin() + startBlock, aln.blockSizes.begin() + endBlock + 1);
         std::vector<unsigned long> qStarts(aln.qStarts.begin() + startBlock, aln.qStarts.begin() + endBlock + 1),
 		tStarts(aln.tStarts.begin() + startBlock, aln.tStarts.begin() + endBlock + 1);
-	return AlignmentRecord(aln.strand, qStart, qEnd, tStart, tEnd, blockCount, blockSizes, qStarts, tStarts);
+	return AlignmentRecord(aln.strand, qStart, qEnd, tStart, tEnd, blockSizes, qStarts, tStarts);
 }
 
 /* Splits input AlignmentRecord in parts if it contains gaps longer than maxGapLength .
@@ -184,7 +184,7 @@ Stores splitted parts in result only if they are longer than minAlnLength. */
 void splitRecord(const AlignmentRecord &aln,
 	unsigned int maxGapLength, unsigned int minAlnLength, std::vector<AlignmentRecord> &result) {
 	int start = 0;
-	for (size_t i = 0; i < aln.blockCount - 1; i++) {
+	for (size_t i = 0; i < aln.blockCount() - 1; i++) {
 		// check for long gaps
 		if (aln.tStarts[i + 1] - (aln.tStarts[i] + aln.blockSizes[i]) > maxGapLength
 			|| (aln.strand == '+' && aln.qStarts[i + 1] - (aln.qStarts[i] + aln.blockSizes[i]) > maxGapLength)
@@ -195,7 +195,7 @@ void splitRecord(const AlignmentRecord &aln,
 				result.push_back(splitRec);
 		}
 	}
-	AlignmentRecord splitRec = cutRecord(aln, start, aln.blockCount-1);
+	AlignmentRecord splitRec = cutRecord(aln, start, aln.blockCount()-1);
 	if (splitRec.getLength() > minAlnLength)
 		result.push_back(splitRec);
 }
