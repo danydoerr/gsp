@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "InputParser.h"
+#include "AlignmentRecord.h"
 #include "Util.h"
 
 void parseCmdArgs(int argc, char** &argv, std::vector<char*> &pslPath,
