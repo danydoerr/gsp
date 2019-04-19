@@ -2,30 +2,73 @@
 #include <vector>
 #include <set>
 #include <memory>
+#include <string>
 
-// Type used for storing block sizes and starts in alignment records
-#define align_rec_block_t unsigned long
+/* ADJUSTABLE MEMORY OPTIMIZATION */
+/* HERE WE CAN SET THE TYPE USED FOR STORING BLOCKS SIZES AND STARTS AS LOCAL COORDINATES */
+/* NO NOT CHANGE THE NEXT DEFINES */
+#define BLOCKS_ULONG 0  // unsigned long (no optimization)
+#define BLOCKS_UINT 1   // unsigned int (should fit blocks and their corresponding data)
+#define BLOCKS_USHORT 2 // unsigned short (need to be careful)
+/* SET BLOCKS_SIZE TO ONE OF ABOVE TO DEFINE THE VARIABLE SIZE USED FOR BLOCKS */
+#define BLOCKS_SIZE BLOCKS_USHORT // <--- set here the variable size
+/* NO NOT CHANGE THE NEXT DEFINES */
+#if BLOCKS_SIZE == BLOCKS_USHORT
+#define block_local_t unsigned short
+#elif BLOCKS_SIZE == BLOCKS_UINT
+#define block_local_t unsigned int
+#else
+#define block_local_t unsigned long
+#endif
 
-/* Represantation of all needed information of a single psl line.
+
+/* Representation of all needed information of a single psl line.
 Additionally, contains a pointer to sym, the AlignmentRecord of its inverse alignment. */
-struct AlignmentRecord {
+class AlignmentRecord {
+public:
 	char strand; // + (forward) or - (reverse)
 	unsigned long qStart; // alignment start position in query
 	unsigned long qEnd; // alignment end position in query
 	unsigned long tStart; // alignment start position in target
 	unsigned long tEnd; // alignment end position in target
-	//unsigned int blockCount; // number of blocks in aln (not needed, we can just check blockSizes.size()
-	std::vector<unsigned int> blockSizes; // size of each block
-	std::vector<align_rec_block_t> qStarts; // start position of each block in query
-	std::vector<align_rec_block_t> tStarts; // start position of each block in target
+	block_local_t blockCount; // number of blocks in aln
+        block_local_t *blockSizes; // size of each block
+
+private:
+        // store local coordinates, public accessible by global_qStarts/global_tStarts methods
+        // unlike the psl file, when the strand is "-", the starts are relative to the beginning instead of to the end of sequence
+	block_local_t *qStarts; // start position of each block in query
+	block_local_t *tStarts; // start position of each block in target
+        
+        /* Converts unsigned long to unsigned int, throwing an exception if doesn't fit 
+         * (even that this adds some overhead, we have to do this to prevent
+         * malfunctioning since we use smaller variables to try to save some
+         * memory, and we cannot allow the program to continue if some value
+         * can't fit these variables
+         */
+        inline unsigned int ulong2uint(const long &ul) const;
+        
+        /* Converts unsigned long to unsigned short, throwing an exception if doesn't fit
+         * (same as above)
+         */
+        inline unsigned short ulong2ushort(const long &ul) const;
+        
+public:
 	AlignmentRecord *sym; // pointer to inverse alignment
 
-	/* Constructor. */
+	/* Constructor (qStarts and tStarts are global coordinates) */
 	AlignmentRecord(char strand,
 		unsigned long qStart, unsigned long qEnd,
 		unsigned long tStart, unsigned long tEnd,
-		std::vector<unsigned int> blockSizes,
-		std::vector<align_rec_block_t> qStarts, std::vector<align_rec_block_t> tStarts);
+		unsigned int blockCount, std::vector<unsigned int> blockSizes,
+		std::vector<unsigned long> qStarts, std::vector<unsigned long> tStarts);
+        
+        /* Copy constructor */
+        AlignmentRecord(const AlignmentRecord &other);
+        
+        /* Destructor */
+        ~AlignmentRecord();
+        
 	bool operator < (const AlignmentRecord other) { return tEnd < other.tEnd; }; // for sorting
 
 	/* Prints all attributes of an AlignmentRecord to STDOUT. */
@@ -35,8 +78,40 @@ struct AlignmentRecord {
 	/* Calculates AlignmentRecord of the inverse alignment and returns a pointer to it. */
 	AlignmentRecord *revert() const;
         
-        /* Returns the number of blocks (old blockCount member variable) */
-        inline unsigned int blockCount() const { return blockSizes.size(); }; // this would be implicitly inline in a classes, not sure in structs
+        /* Returns one index of qStarts in global coordinates. */
+        inline unsigned long get_qStarts(unsigned int idx) const { return qStarts[idx] + qStart; };
+        
+        /* Returns one index of qStarts in global coordinates */
+        inline unsigned long get_tStarts(unsigned int idx) const { return tStarts[idx] + tStart; };
+        
+        /* Iterator over qStarts, tStarts and blockSizes (global coordinates) implementation */
+        class iterator : public std::iterator<std::forward_iterator_tag, unsigned long>
+        {           
+        public:
+            enum Type : char { QUERY = 'Q', TARGET = 'T', BLOCK_SIZES = 'B'};
+            inline iterator(const AlignmentRecord *record, Type t, unsigned int idx = 0);
+            inline iterator(const iterator& i);
+            inline iterator& operator=(const iterator& i);
+            inline iterator& operator++();
+            inline iterator operator++(int);
+            inline iterator operator+(const int& rhs);
+            inline unsigned long operator*() const;
+            inline unsigned long operator->() const;
+            inline bool operator==(const iterator& i) const;
+            inline bool operator!=(const iterator& i) const;
+            
+        private:
+            const AlignmentRecord *record;
+            Type type;
+            unsigned int cur_idx;
+        };
+
+        inline iterator begin_qStarts() const;
+        inline iterator end_qStarts() const;
+        inline iterator begin_tStarts() const;
+        inline iterator end_tStarts() const;
+        inline iterator begin_blockSizes() const;
+        inline iterator end_blockSizes() const;
 };
 
 struct Breakpoint {
@@ -92,3 +167,117 @@ struct dpStats {
 	unsigned long prev;
 	dpStats(double cost, bool dist, unsigned long prev);
 };
+
+
+
+/* Alignment Record inline methods */
+
+inline unsigned int AlignmentRecord::ulong2uint(const long &ul) const {
+        unsigned int ui = ul;
+        if (ui != ul) throw std::range_error("Cannot fit this number in an unsigned int: " + std::to_string(ul) + " (" + __FILE__ + ":" + std::to_string(__LINE__) + ")");
+        return ui;   
+}
+
+inline unsigned short AlignmentRecord::ulong2ushort(const long &ul) const {
+        unsigned short uh = ul;
+        if (uh != ul) throw std::range_error("Cannot fit this number in an unsigned short: " + std::to_string(ul) + " (" + __FILE__ + ":" + std::to_string(__LINE__) + ")");
+        return uh; 
+}
+
+inline AlignmentRecord::iterator AlignmentRecord::begin_qStarts() const
+{
+  return iterator(this, iterator::Type::QUERY);
+}
+
+inline AlignmentRecord::iterator AlignmentRecord::end_qStarts() const
+{
+  return iterator(this, iterator::Type::QUERY, blockCount);
+}
+
+inline AlignmentRecord::iterator AlignmentRecord::begin_tStarts() const
+{
+  return iterator(this, iterator::Type::TARGET);
+}
+
+inline AlignmentRecord::iterator AlignmentRecord::end_tStarts() const
+{
+  return iterator(this, iterator::Type::TARGET, blockCount);
+}
+
+inline AlignmentRecord::iterator AlignmentRecord::begin_blockSizes() const
+{
+  return iterator(this, iterator::Type::BLOCK_SIZES);
+}
+
+inline AlignmentRecord::iterator AlignmentRecord::end_blockSizes() const
+{
+  return iterator(this, iterator::Type::BLOCK_SIZES, blockCount);
+}
+
+inline AlignmentRecord::iterator::iterator(const AlignmentRecord *record, Type type, unsigned int idx) :
+    record(record),
+    type(type),
+    cur_idx(idx)
+{}
+
+inline AlignmentRecord::iterator::iterator(const iterator& i) :
+    record(i.record),
+    type(i.type),
+    cur_idx(i.cur_idx)
+{}
+
+inline AlignmentRecord::iterator& AlignmentRecord::iterator::operator=(const iterator& i)
+{ 
+    record = i.record;
+    type = i.type;
+    cur_idx = i.cur_idx;
+    return *this; 
+}
+
+inline AlignmentRecord::iterator& AlignmentRecord::iterator::operator++()
+{
+    ++cur_idx;
+    return *this; 
+}
+
+inline AlignmentRecord::iterator AlignmentRecord::iterator::operator++(int)
+{ 
+    iterator tmp(*this);
+    ++cur_idx;
+    return tmp; 
+}
+
+inline AlignmentRecord::iterator AlignmentRecord::iterator::operator+(const int& rhs)
+{
+    return iterator(record, type, cur_idx + rhs);
+}
+
+inline unsigned long AlignmentRecord::iterator::operator*() const
+{
+    if (type == QUERY)
+        return record->get_qStarts(cur_idx);
+    else if (type == TARGET)
+        return record->get_tStarts(cur_idx);
+    else
+        return record->blockSizes[cur_idx];
+}
+
+inline unsigned long AlignmentRecord::iterator::operator->() const
+{
+    if (type == QUERY)
+        return record->get_qStarts(cur_idx);
+    else if (type == TARGET)
+        return record->get_tStarts(cur_idx);
+    else
+        return record->blockSizes[cur_idx];
+}
+
+inline bool AlignmentRecord::iterator::operator==(const iterator& i) const
+{
+  return record == i.record && type == i.type && cur_idx == i.cur_idx; 
+}
+
+inline bool AlignmentRecord::iterator::operator!=(const iterator& i) const
+{
+  return record != i.record || type != i.type || cur_idx != i.cur_idx;
+}

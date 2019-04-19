@@ -84,8 +84,8 @@ void IMP(std::vector<Region>& protoAtoms,
 	shoutTime(start);
 }
 
-unsigned int binSearch(unsigned long x, const std::vector<unsigned long>& xList) {
-	unsigned int result = std::distance(xList.begin(), std::upper_bound(xList.begin(), xList.end(), x));
+unsigned int binSearch_tStarts(unsigned long x, const AlignmentRecord& aln) {
+	unsigned int result = std::distance(aln.begin_tStarts(), std::upper_bound(aln.begin_tStarts(), aln.end_tStarts(), x));
 	if (result == 0) return result;
 	else return result - 1;
 }
@@ -99,14 +99,14 @@ unsigned int binSearchRegion(unsigned long x, const std::vector<WasteRegion>& bp
 }
 
 unsigned int mapBreakpoint(unsigned long bpPosition, const AlignmentRecord& aln) {
-	auto idx = binSearch(bpPosition, aln.tStarts);
+	auto idx = binSearch_tStarts(bpPosition, aln);
 	unsigned int result;
-	unsigned long dist = (bpPosition >= aln.tStarts[idx]) ? bpPosition - aln.tStarts[idx] : 0;
+	unsigned long dist = (bpPosition >= aln.get_tStarts(idx)) ? bpPosition - aln.get_tStarts(idx) : 0;
 	if (dist > aln.blockSizes[idx]) dist = aln.blockSizes[idx];
 	if (aln.strand == '+')
-		result = aln.qStarts[idx] + dist;
+		result = aln.get_qStarts(idx) + dist;
 	else
-		result = aln.qStarts[idx] - dist;
+		result = aln.get_qStarts(idx) - dist;
 	return result;
 }
 

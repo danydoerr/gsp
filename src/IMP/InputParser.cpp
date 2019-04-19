@@ -1,8 +1,10 @@
-#include "InputParser.h"
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
 #include <algorithm>
+
+#include "InputParser.h"
+#include "Util.h"
 
 void parseCmdArgs(int argc, char** &argv, std::vector<char*> &pslPath,
 	unsigned int &minLengh, unsigned int &maxGap, unsigned int &minAlnLength,
@@ -79,7 +81,8 @@ const std::vector<std::string> splitString(const std::string& input, const char 
 /* Turns input vector of strings into a vector of numbers.
 Will end the program if one of the strings does not represent an integer number. */
 const std::vector<unsigned long> stringVecToLongVec(const std::vector<std::string>& input) {
-	std::vector<unsigned long> result(input.size());
+	std::vector<unsigned long> result;
+        result.reserve(input.size());
 	for (auto i : input) {
 		try {
 			result.push_back(std::stoul(i));
@@ -92,24 +95,34 @@ const std::vector<unsigned long> stringVecToLongVec(const std::vector<std::strin
 	return result;
 }
 
-inline unsigned int stoui(const std::string& s)
-{
-        unsigned long lresult = stoul(s, 0, 10);
-        unsigned int result = lresult;
-        if (result != lresult) throw std::range_error("Cannot fit this number in an int: " + s);
-        return result;
-}
-
 /* Turns input vector of strings into a vector of numbers.
 Will end the program if one of the strings does not represent an integer number. */
 const std::vector<unsigned int> stringVecToIntVec(const std::vector<std::string>& input) {
-	std::vector<unsigned int> result(input.size());
+	std::vector<unsigned int> result;
+        result.reserve(input.size());
 	for (auto i : input) {
 		try {
 			result.push_back(stoui(i));
 		}
 		catch (std::invalid_argument) {
-			std::cerr << "ERROR: Input parser failed to parse string to long, input was " << i << std::endl;
+			std::cerr << "ERROR: Input parser failed to parse string to unsigned int, input was " << i << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	return result;
+}
+
+/* Turns input vector of strings into a vector of numbers.
+Will end the program if one of the strings does not represent an integer number. */
+const std::vector<unsigned short> stringVecToShortVec(const std::vector<std::string>& input) {
+	std::vector<unsigned short> result;
+        result.reserve(input.size());
+	for (auto i : input) {
+		try {
+			result.push_back(stouh(i));
+		}
+		catch (std::invalid_argument) {
+			std::cerr << "ERROR: Input parser failed to parse string to unsigned short, input was " << i << std::endl;
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -138,45 +151,45 @@ const AlignmentRecord recordFromPsl(const std::vector<std::string>& pslLine,
 
 	// offset positions for concatenated sequence
 	const unsigned long qOffset = speciesStart.find(qName)->second, tOffset = speciesStart.find(tName)->second;
-	auto qStart = std::stoul(pslLine[11]) + qOffset, qEnd = std::stoul(pslLine[12]) + qOffset,
-		tStart = std::stoul(pslLine[15]) + tOffset, tEnd = std::stoul(pslLine[16]) + tOffset,
-		blockCount = std::stoul(pslLine[17]);
-	auto qStarts = stringVecToLongVec(splitString(pslLine[19], ',', blockCount)),
+	unsigned long qStart = std::stoul(pslLine[11]) + qOffset, qEnd = std::stoul(pslLine[12]) + qOffset,
+		tStart = std::stoul(pslLine[15]) + tOffset, tEnd = std::stoul(pslLine[16]) + tOffset;
+        unsigned int blockCount = stoui(pslLine[17]);
+	std::vector<unsigned long> qStarts = stringVecToLongVec(splitString(pslLine[19], ',', blockCount)),
 		tStarts = stringVecToLongVec(splitString(pslLine[20], ',', blockCount));
 	// shift start positions by offest. If on reverse strand, recompute query w.r.t. starts to start of sequence
 	if (strand == '+')
 		for (auto i = qStarts.begin(); i != qStarts.end(); i++)
 			*i += qOffset;
 	else {
-		auto qSize = std::stoul(pslLine[10]);
+		//auto qSize = std::stoul(pslLine[10]); // already computed
 		for (auto i = qStarts.begin(); i != qStarts.end(); i++)
 			*i = qSize - *i + qOffset;
 	}
 	for (auto i = tStarts.begin(); i != tStarts.end(); i++)
 		*i += tOffset;
 
-	return AlignmentRecord(strand, qStart, qEnd, tStart, tEnd,
-		stringVecToIntVec(splitString(pslLine[18], ',', blockCount)), // blockSizes
-		qStarts, tStarts);
+        std::vector<unsigned int> blockSizes = stringVecToIntVec(splitString(pslLine[18], ',', blockCount));        
+	return AlignmentRecord(strand, qStart, qEnd, tStart, tEnd, blockCount,
+		blockSizes, qStarts, tStarts);
 }
 
 /* Returns a part of the input AlignmentRecord, from startBlock to endBlock, including both. */
 const AlignmentRecord cutRecord(const AlignmentRecord &aln, unsigned int startBlock, unsigned int endBlock) {
-	if (startBlock == 0 && endBlock == aln.blockCount() - 1) return aln;
-	unsigned long qStart, qEnd, tStart = aln.tStarts[startBlock],
-		tEnd = aln.tStarts[endBlock] + aln.blockSizes[endBlock];
+	if (startBlock == 0 && endBlock == ((unsigned int) aln.blockCount) - 1) return aln;
+	unsigned long qStart, qEnd, tStart = aln.get_tStarts(startBlock),
+		tEnd = aln.get_tStarts(endBlock) + aln.blockSizes[endBlock];
 	if (aln.strand == '+') {
-		qStart = aln.qStarts[startBlock];
-		qEnd = aln.qStarts[endBlock] + aln.blockSizes[endBlock];
+		qStart = aln.get_qStarts(startBlock);
+		qEnd = aln.get_qStarts(endBlock) + aln.blockSizes[endBlock];
 	} else { // strand == '-'
-		qStart = aln.qStarts[endBlock] - aln.blockSizes[endBlock];
-		qEnd = aln.qStarts[startBlock];
+		qStart = aln.get_qStarts(endBlock) - aln.blockSizes[endBlock];
+		qEnd = aln.get_qStarts(startBlock);
 	}
-	//unsigned int blockCount = endBlock - startBlock + 1;
-	std::vector<unsigned int> blockSizes(aln.blockSizes.begin() + startBlock, aln.blockSizes.begin() + endBlock + 1);
-        std::vector<unsigned long> qStarts(aln.qStarts.begin() + startBlock, aln.qStarts.begin() + endBlock + 1),
-		tStarts(aln.tStarts.begin() + startBlock, aln.tStarts.begin() + endBlock + 1);
-	return AlignmentRecord(aln.strand, qStart, qEnd, tStart, tEnd, blockSizes, qStarts, tStarts);
+	unsigned int blockCount = endBlock - startBlock + 1;
+	std::vector<unsigned int> blockSizes(aln.begin_blockSizes() + startBlock, aln.begin_blockSizes() + endBlock + 1);
+        std::vector<unsigned long> qStarts(aln.begin_qStarts() + startBlock, aln.begin_qStarts() + endBlock + 1),
+		tStarts(aln.begin_tStarts() + startBlock, aln.begin_tStarts() + endBlock + 1);
+	return AlignmentRecord(aln.strand, qStart, qEnd, tStart, tEnd, blockCount, blockSizes, qStarts, tStarts);
 }
 
 /* Splits input AlignmentRecord in parts if it contains gaps longer than maxGapLength .
@@ -184,26 +197,25 @@ Stores splitted parts in result only if they are longer than minAlnLength. */
 void splitRecord(const AlignmentRecord &aln,
 	unsigned int maxGapLength, unsigned int minAlnLength, std::vector<AlignmentRecord> &result) {
 	int start = 0;
-	for (size_t i = 0; i < aln.blockCount() - 1; i++) {
+	for (size_t i = 0; i < ((unsigned int) aln.blockCount) - 1; i++) {
 		// check for long gaps
-		if (aln.tStarts[i + 1] - (aln.tStarts[i] + aln.blockSizes[i]) > maxGapLength
-			|| (aln.strand == '+' && aln.qStarts[i + 1] - (aln.qStarts[i] + aln.blockSizes[i]) > maxGapLength)
-			|| (aln.strand == '-' && aln.qStarts[i] - (aln.qStarts[i + 1] + aln.blockSizes[i]) > maxGapLength)) {
+		if (aln.get_tStarts(i + 1) - (aln.get_tStarts(i) + aln.blockSizes[i]) > maxGapLength
+			|| (aln.strand == '+' && aln.get_qStarts(i + 1) - (aln.get_qStarts(i) + aln.blockSizes[i]) > maxGapLength)
+			|| (aln.strand == '-' && aln.get_qStarts(i) - (aln.get_qStarts(i + 1) + aln.blockSizes[i]) > maxGapLength)) {
 			AlignmentRecord splitRec = cutRecord(aln, start, i);
 			start = i + 1;
 			if (splitRec.getLength() > minAlnLength)
 				result.push_back(splitRec);
 		}
 	}
-	AlignmentRecord splitRec = cutRecord(aln, start, aln.blockCount()-1);
+	AlignmentRecord splitRec = cutRecord(aln, start, aln.blockCount-1);
 	if (splitRec.getLength() > minAlnLength)
 		result.push_back(splitRec);
 }
 
 void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>& speciesStart,
 	unsigned int maxGapLength, unsigned int minAlnLength, float minAlnIdentity,
-	std::vector<AlignmentRecord *>& result) {
-        //unsigned long max_bsize = 0;
+	std::vector<AlignmentRecord *>& result) {           
 	std::ifstream pslFile;
         for (auto psl : pslPath) {
             std::cerr << "Reading " << psl << "... ";
@@ -237,9 +249,6 @@ void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>&
                              *	continue; // skip alignments that align a region to itself*/
                             std::vector<AlignmentRecord> splitAlns;
                             splitRecord(curRec, maxGapLength, minAlnLength, splitAlns);
-                            //for (auto size : curRec.blockSizes)
-                                //if (size > max_bsize)
-                                    //max_bsize = size;
                             for (auto aln : splitAlns) {
                                     AlignmentRecord *a = new AlignmentRecord(aln);
                                     AlignmentRecord *rev = aln.revert();
@@ -257,7 +266,6 @@ void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>&
                     exit(EXIT_FAILURE);
             }
         }
-        //std::cout << "MAX SIZE: " << max_bsize << std::endl;
 }
 
 void fillBuckets(std::vector<AlignmentRecord *>& alns, unsigned int bucketSize,

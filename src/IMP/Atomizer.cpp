@@ -30,7 +30,8 @@ int main(int argc, char** argv) {
 	std::cerr << "Starting with parameters:\n"
 		<< "minLength: " << minLength << ", minIdent: " << minAlnIdentity * 100 << ", maxGap: "
 		<< maxGapLength << ", minAlnLength: " << minAlnLength
-		<<  ", bucketSize: " << bucketSize << std::endl;
+		<<  ", bucketSize: " << bucketSize
+                <<  ", numThreads: " << numThreads << std::endl;
 	auto start = std::chrono::high_resolution_clock::now();
 	speciesStarts = { {"$", 0} };
 	parsePsl(pslPath, speciesStarts, maxGapLength, minAlnLength, minAlnIdentity, alignments);

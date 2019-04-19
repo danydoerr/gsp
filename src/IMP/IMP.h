@@ -11,9 +11,9 @@ void IMP(std::vector<Region>& , std::vector<WasteRegion>&,
 	const std::chrono::time_point<std::chrono::high_resolution_clock>,
 	unsigned int);
 
-/* Returns index of the last element in xList that is <= x.
-If all elements in xList are > x, result is 0. Expects xList to be sorted ascending. */
-unsigned int binSearch(unsigned long x, const std::vector<unsigned long>& xList);
+/* Returns index of the last element in tStarts that is <= x.
+If all elements in tStarts are > x, result is 0. Expects tStarts to be sorted ascending. */
+unsigned int binSearch_tStarts(unsigned long x, const AlignmentRecord& aln);
 
 /* Returns index of the last element in bpList whose starting position is <= x.
 If there are none, result is 0. Expects bpList to be sorted ascending. */

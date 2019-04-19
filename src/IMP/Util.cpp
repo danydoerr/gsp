@@ -1,6 +1,14 @@
 #include <iostream>
+#include <algorithm>
+#include <stdexcept>
+
 #include "Util.h"
-#include "IMP.h"
+
+unsigned int binSearch(unsigned long x, const std::vector<unsigned long>& xList) {
+        unsigned int result = std::distance(xList.begin(), std::upper_bound(xList.begin(), xList.end(), x));
+        if (result == 0) return result;
+        else return result - 1;
+}
 
 void printResult(const std::vector<WasteRegion> &regions, const std::vector<int> &classes,
 	const std::map<std::string, unsigned long> &speciesStarts) {
@@ -35,3 +43,4 @@ void shoutTime(const std::chrono::time_point<std::chrono::high_resolution_clock>
 	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
 	std::cerr << " Time passed since start: " << ms << " milliseconds." << std::endl;
 }
+
