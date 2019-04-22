@@ -7,12 +7,17 @@
 #include "AlignmentRecord.h"
 #include "Util.h"
 
-// We suppose psl lines won't be longer than that
-#define MAX_LINE 32768
+InputParser::InputParser() {
+    // Default values
+    maxGapLength = 13;
+    minAlnLength = 13;
+    minLength = 250;
+    bucketSize = 1000;
+    numThreads = 1;
+    minAlnIdentity = 0.8f;
+}
 
-void parseCmdArgs(int argc, char** &argv, std::vector<char*> &pslPath,
-	unsigned int &minLengh, unsigned int &maxGap, unsigned int &minAlnLength,
-	float &minAlnIdentity, unsigned int &bucketSize, unsigned int &numThreads) {
+void InputParser::parseCmdArgs(int argc, char** &argv) {
 	if (argc <= 1) {
 		std::cerr << "Usage: atomizer <psl file(s)> [options]\n\n"
                         << "Multiple input psl files may be given, but always as first arguments.\n"
@@ -42,14 +47,14 @@ void parseCmdArgs(int argc, char** &argv, std::vector<char*> &pslPath,
 		exit(EXIT_FAILURE);
 	}
         for (int i = 1; i <= mandatoryArgs; i++)
-            pslPath.push_back(argv[i]);
+            pslPaths.push_back(argv[i]);
 	for (int i = mandatoryArgs + 1; i < argc; i++) {
 		std::string arg = argv[i];
 		std::transform(arg.begin(), arg.end(), arg.begin(), tolower);
 		try {
-			if (arg == "--minlength") minLengh = std::stoul(argv[++i]);
+			if (arg == "--minlength") minLength = std::stoul(argv[++i]);
 			else if (arg == "--minident") minAlnIdentity = std::stoul(argv[++i]) / 100.0f;
-			else if (arg == "--maxgap") maxGap = std::stoul(argv[++i]);
+			else if (arg == "--maxgap") maxGapLength = std::stoul(argv[++i]);
 			else if (arg == "--minalnlength") minAlnLength = std::stoul(argv[++i]);
 			else if (arg == "--bucketsize") bucketSize = std::stoul(argv[++i]);
 			else if (arg == "--numthreads") numThreads = std::stoul(argv[++i]);
@@ -65,123 +70,32 @@ void parseCmdArgs(int argc, char** &argv, std::vector<char*> &pslPath,
 	}
 }
 
-/* Reads a field string */
-inline std::string getStringField(const char *line, unsigned int &pos) {
-        std::string str;
-        str.reserve(16); // should be enough in most cases
-        while (line[pos] != '\t')
-            str.push_back(line[pos++]);
-        ++pos; // move to after \t
-        return str;
-}
-
-/* Reads and returns a field long value (we assume no sign, just digits) */
-inline unsigned long getLongField(const char *line, unsigned int &pos) {
-        unsigned long v = 0;
-        while (line[pos] != '\t') {
-            v *= 10;
-            v += line[pos++] - '0';
-        }
-        ++pos; // move to after \t
-        return v;
-}
-
-/* Reads and returns a field int value (we assume no sign, just digits) */
-inline unsigned int getIntField(const char *line, unsigned int &pos) {
-        unsigned int v = 0;
-        while (line[pos] != '\t') {
-            v *= 10;
-            v += line[pos++] - '0';
-        }
-        ++pos; // move to after \t
-        return v;
-}
-
-/* Reads and returns a subfield value (we assume no sign, just digits, ends with comma) */
-inline unsigned long getLongSubField(const char *line, unsigned int &pos) {
-// we could join this function with getNumericField function, but an extra || comparison would make it slower
-        unsigned long v = 0;
-        while (line[pos] != ',') {
-            v *= 10;
-            v += line[pos++] - '0';
-        }
-        ++pos; // move to after ,
-        return v;
-}
-
-/* Reads and returns a subfield value (we assume no sign, just digits, ends with comma) */
-inline unsigned int getIntSubField(const char *line, unsigned int &pos) {
-// we could join this function with getNumericField function, but an extra || comparison would make it slower
-        unsigned int v = 0;
-        while (line[pos] != ',') {
-            v *= 10;
-            v += line[pos++] - '0';
-        }
-        ++pos; // move to after ,
-        return v;
-}
-
-/* Reads and returns an integer vector from a field composed by a set of numeric int subfields separated and ending by comma + \t */
-inline std::vector<unsigned int> getIntArrayField(const char *line, unsigned int &pos, unsigned int numberOfSubfields) {
-        std::vector<unsigned int> values;
-        values.reserve(numberOfSubfields);
-        for (unsigned int i = 0; i < numberOfSubfields; i++)
-            values.push_back(getIntSubField(line, pos));
-        ++pos; // move to after \t (or \n if this is the last field)
-        return values;
-}
-
-/* Reads and returns an integer vector from a field composed by a set of numeric long subfields separated and ending by comma + \t */
-inline std::vector<unsigned long> getLongArrayField(const char *line, unsigned int &pos, unsigned int numberOfSubfields) {
-        std::vector<unsigned long> values;
-        values.reserve(numberOfSubfields);
-        for (unsigned int i = 0; i < numberOfSubfields; i++)
-            values.push_back(getLongSubField(line, pos));
-        ++pos; // move to after \t (or \n if this is the last field)
-        return values;
-}
-
-/* Advances in line skipping a number of fields */
-inline void skipFields(const char *line, unsigned int &pos, unsigned int numberOfFields) {
-        for (unsigned int skipped = 0; skipped < numberOfFields; ++pos)
-            if (line[pos] == '\t')
-                ++skipped;
-}
-
-/* Check if sequences in current line were already read. If not, add with its related offset */
-inline void updateSpeciesStart(std::map<std::string, unsigned long>& speciesStart,
-        std::string name, unsigned long size) {
-        if (!speciesStart.count(name)) {
-            auto last = speciesStart.find("$");
-            auto curLen = last->second;
-            speciesStart.insert(std::pair<std::string, unsigned long>(name, curLen));
-            last->second = curLen + size;
-        }
-}
-
-/* Adds record and reverse to vector and setup sym pointers */
-inline void setupSymAndAdd(std::vector<AlignmentRecord *>& records, AlignmentRecord *rec) {
-        AlignmentRecord *rev = rec->revert();
-        rec->sym = rev;
-        rev->sym = rec;
-        records.push_back(rec);
-        records.push_back(rev);
+void InputParser::getCmdLineArgs(std::vector<char*> &pslPaths,
+        unsigned int &minLength, unsigned int &maxGapLength, unsigned int &minAlnLength,
+        float &minAlnIdentity, unsigned int &bucketSize, unsigned int &numThreads) {
+    
+    pslPaths = this->pslPaths;
+    minLength = this->minLength;
+    maxGapLength = this->maxGapLength;
+    minAlnLength = this->minAlnLength;
+    minAlnIdentity = this->minAlnIdentity;
+    bucketSize = this->bucketSize;
+    numThreads = this->numThreads;
 }
 
 /* Parses a single psl line to alignment records (original and reverse,
  * sometimes split) and add them to records vector, returns the number of
  * records added */
-unsigned int recordsFromPsl(std::vector<AlignmentRecord *>& records, const char *line,
-        unsigned int maxGapLength, unsigned int minAlnLength, float minAlnIdentity,
+unsigned int InputParser::recordsFromPsl(std::vector<AlignmentRecord *>& records,
         std::map<std::string, unsigned long>& speciesStart) {
     
         unsigned int orig_size = 0; // records size before adding new records
-        unsigned int pos = 0; // position in line
+        pos = 0; // position in line
         
         { // skip low quality alignments
-            unsigned int matches = getIntField(line, pos);
-            unsigned int mismatches = getIntField(line, pos);
-            unsigned int repmatches = getIntField(line, pos);
+            unsigned int matches = getIntField();
+            unsigned int mismatches = getIntField();
+            unsigned int repmatches = getIntField();
             matches += repmatches;
             if (matches == 0) return 0;
             unsigned int all = matches + mismatches;
@@ -193,31 +107,31 @@ unsigned int recordsFromPsl(std::vector<AlignmentRecord *>& records, const char 
              *	continue; // skip alignments that align a region to itself*/
         }
         
-        skipFields(line, pos, 5);
+        skipFields(5);
         
         // fields variables, in the order they appear
         const char strand = line[pos++];
         ++pos; // we should be at \t now, move past it
         
-        const std::string qName = getStringField(line, pos);
-        const unsigned long qSize = getLongField(line, pos);
+        const std::string qName = getStringField();
+        const unsigned long qSize = getLongField();
         updateSpeciesStart(speciesStart, qName, qSize); // check if sequence is in the map, if not, add it
         const unsigned long qOffset = speciesStart.find(qName)->second; // offset positions for concatenated sequence
-        const unsigned long qStart = getLongField(line, pos) + qOffset;
-        const unsigned long qEnd = getLongField(line, pos) + qOffset;
+        const unsigned long qStart = getLongField() + qOffset;
+        const unsigned long qEnd = getLongField() + qOffset;
         
-        const std::string tName = getStringField(line, pos);
-        const unsigned long tSize = getLongField(line, pos);
+        const std::string tName = getStringField();
+        const unsigned long tSize = getLongField();
         updateSpeciesStart(speciesStart, tName, tSize);
         const unsigned long tOffset = speciesStart.find(tName)->second;
-        const unsigned long tStart = getLongField(line, pos) + tOffset;
-        const unsigned long tEnd = getLongField(line, pos) + tOffset;
+        const unsigned long tStart = getLongField() + tOffset;
+        const unsigned long tEnd = getLongField() + tOffset;
         
-        unsigned int blockCount = getIntField(line, pos);
+        unsigned int blockCount = getIntField();
         
-        std::vector<unsigned int> blockSizes = getIntArrayField(line, pos, blockCount);
-        std::vector<unsigned long> qStarts = getLongArrayField(line, pos, blockCount);
-        std::vector<unsigned long> tStarts = getLongArrayField(line, pos, blockCount);
+        std::vector<unsigned int> blockSizes = getIntArrayField(blockCount);
+        std::vector<unsigned long> qStarts = getLongArrayField(blockCount);
+        std::vector<unsigned long> tStarts = getLongArrayField(blockCount);
         
 	// shift start positions by offset, if on reverse strand (only query) recompute w.r.t. starts to start of sequence
 	if (strand == '+')
@@ -248,25 +162,20 @@ unsigned int recordsFromPsl(std::vector<AlignmentRecord *>& records, const char 
         return records.size() - orig_size;
 }
 
-void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>& speciesStart,
-	unsigned int maxGapLength, unsigned int minAlnLength, float minAlnIdentity,
+void InputParser::parsePsl(std::map<std::string, unsigned long>& speciesStart,
 	std::vector<AlignmentRecord *>& result) {
     
-        char *line = new char[MAX_LINE]; // I'm not sure if it is a good idea to allocate this big block in the stack
-        
-        // stores records created from 1 line of psl (original and reverse, and maybe split), reused many times
-        std::vector<AlignmentRecord> newRecords;
-        newRecords.reserve(128);
-        
+        line = new char[MAX_LINE]; // I'm not sure if it is a good idea to allocate this big block in the stack
+                
 	std::ifstream pslFile;
-        for (auto psl : pslPath) {
+        for (auto psl : pslPaths) {
             std::cerr << "Reading " << psl << "... ";
             pslFile.open(psl);
             if (pslFile.is_open()) {
                     while (!pslFile.getline(line, MAX_LINE).eof()) {
                             if (line[0] == '#') continue; // skip comments
                             
-                            recordsFromPsl(result, line, maxGapLength, minAlnLength, minAlnIdentity, speciesStart);
+                            recordsFromPsl(result, speciesStart);
                     }
                     pslFile.close();
                     std::cerr << "Done." << std::endl;
@@ -279,4 +188,49 @@ void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>&
         delete[] line;
 }
 
-
+void InputParser::getMaxBlockSizeAndLocalStart(unsigned long &max_bsize, unsigned long &max_start) {
+        max_bsize = 0;
+        max_start = 0;
+        line = new char[MAX_LINE]; // I'm not sure if it is a good idea to allocate this big block in the stack
+        
+        std::map<std::string, unsigned long> speciesStarts; // maps species name to their starting position in concatenated string
+        speciesStarts = { {"$", 0} };
+        
+        std::vector<AlignmentRecord *> records;
+        records.reserve(128);
+        
+	std::ifstream pslFile;
+        for (auto psl : pslPaths) {
+            std::cerr << "Reading " << psl << "... ";
+            pslFile.open(psl);
+            if (pslFile.is_open()) {
+                    while (!pslFile.getline(line, MAX_LINE).eof()) {
+                            if (line[0] == '#') continue; // skip comments
+                            
+                            recordsFromPsl(records, speciesStarts);
+                            
+                            for (auto curRec : records) {
+                                for (auto size = curRec->begin_blockSizes(); size != curRec->end_blockSizes(); size++)
+                                    if (*size > max_bsize)
+                                        max_bsize = *size;
+                                for (auto start = curRec->begin_qStarts(); start != curRec->end_qStarts(); start++)
+                                    if (*start - curRec->qStart > max_bsize)
+                                        max_start = *start - curRec->qStart;
+                                for (auto start = curRec->begin_tStarts(); start != curRec->end_tStarts(); start++)
+                                    if (*start - curRec->tStart > max_bsize)
+                                        max_start = *start - curRec->tStart;
+                                delete curRec;
+                            }
+                            
+                            records.clear();
+                    }
+                    pslFile.close();
+                    std::cerr << "Done." << std::endl;
+            }
+            else {
+                    std::cerr << "ERROR: psl file could not be opened!" << std::endl;
+                    exit(EXIT_FAILURE);
+            }
+        }
+        delete[] line;
+}

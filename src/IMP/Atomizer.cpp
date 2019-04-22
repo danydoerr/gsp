@@ -15,9 +15,12 @@
 int main(int argc, char** argv) {
 	// only reason the following vars are not const is for cmd arg parsing
 	std::vector<char*> pslPath;
-	unsigned int maxGapLength = 13, minAlnLength = 13, minLength = 250, bucketSize = 1000, numThreads = 1;
-	float minAlnIdentity = 0.8f;
-	parseCmdArgs(argc, argv, pslPath, minLength, maxGapLength, minAlnLength, minAlnIdentity, bucketSize, numThreads);
+	unsigned int maxGapLength, minAlnLength, minLength, bucketSize, numThreads;
+	float minAlnIdentity;
+        
+        InputParser parser;
+        parser.parseCmdArgs(argc, argv);
+        parser.getCmdLineArgs(pslPath, minLength, maxGapLength, minAlnLength, minAlnIdentity, bucketSize, numThreads);
 
 	// init maps and vectors
 	std::map<std::string, unsigned long> speciesStarts; // maps species name to their starting position in concatenated string
@@ -34,7 +37,7 @@ int main(int argc, char** argv) {
                 <<  ", numThreads: " << numThreads << std::endl;
 	auto start = std::chrono::high_resolution_clock::now();
 	speciesStarts = { {"$", 0} };
-	parsePsl(pslPath, speciesStarts, maxGapLength, minAlnLength, minAlnIdentity, alignments);
+	parser.parsePsl(speciesStarts, alignments);
 	for (auto i : speciesStarts) speciesBoundaries.push_back(i.second);
 	std::cerr << "INFO: PSL parsing done, considering " << alignments.size() << " alignments between "
 		<< speciesStarts.size() - 1 << " sequences.";
