@@ -2,7 +2,10 @@ CC = g++
 CFLAGS = -std=c++14 -Wall -fopenmp
 RM_CLEAN = *.o atomizer atomizer_debug
 
-.PHONY: debug atomizer
+BIN_FLAGS = -O3
+DEBUG_FLAGS = -g -O
+
+.PHONY: debug atomizer GetMaxBlockSizeAndLocalStart
 
 all: atomizer
 
@@ -41,10 +44,24 @@ Atomizer.o: AlignmentRecord.h InputParser.h Breakpoints.h IMP.h Classify.h Util.
 	$(CC) $(CFLAGS) -c Atomizer.cpp
 	@echo
 
+GetMaxBlockSizeAndLocalStart.o: AlignmentRecord.h Util.h GetMaxBlockSizeAndLocalStart.cpp
+	@echo "**Compiling GetMaxBlockSizeAndLocalStart.cpp**"
+	$(CC) $(CFLAGS) -c GetMaxBlockSizeAndLocalStart.cpp
+	@echo
+
+GetMaxBlockSizeAndLocalStart: CFLAGS += $(BIN_FLAGS)
+
+GetMaxBlockSizeAndLocalStart: GetMaxBlockSizeAndLocalStart_bin
+
+GetMaxBlockSizeAndLocalStart_bin: AlignmentRecord.o InputParser.o Util.o GetMaxBlockSizeAndLocalStart.o
+	@echo "**Linking files**"
+	$(CC) $(CFLAGS) AlignmentRecord.o InputParser.o Util.o GetMaxBlockSizeAndLocalStart.o -o GetMaxBlockSizeAndLocalStart
+	@echo
+
 rm_obj:
 	@rm -f *.o
 
-debug: CFLAGS+=-g
+debug: CFLAGS += $(DEBUG_FLAGS)
 
 debug: debug_bin
 
@@ -55,7 +72,7 @@ debug_bin: rm_obj AlignmentRecord.o Breakpoints.o Classify.o IMP.o InputParser.o
 	@rm -f *.o
 	@echo
 
-atomizer: CFLAGS+=-O3
+atomizer: CFLAGS += $(BIN_FLAGS)
 
 atomizer: atomizer_bin
 

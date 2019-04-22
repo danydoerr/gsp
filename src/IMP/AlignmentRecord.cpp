@@ -37,6 +37,40 @@ AlignmentRecord::AlignmentRecord(char strand,
             this->tStarts[i++] = ulong2block_local_t(x - tStart); // converting to local coordinate
 }
 
+AlignmentRecord::AlignmentRecord(char strand,
+	unsigned long qStart, unsigned long qEnd,
+	unsigned long tStart, unsigned long tEnd,
+	unsigned int blockCount, std::vector<unsigned int> blockSizes,
+	std::vector<unsigned long> qStarts, std::vector<unsigned long> tStarts,
+        unsigned int start_pos)
+	: strand(strand), blockCount(blockCount), sym(nullptr) {
+        
+        unsigned int end_pos = start_pos + blockCount - 1;
+        
+        this->tStart = tStarts[start_pos];
+	this->tEnd = tStarts[end_pos] + blockSizes[end_pos];
+        if (strand == '+') {
+            this->qStart = qStarts[start_pos];
+            this->qEnd = qStarts[end_pos] + blockSizes[end_pos];
+        } else { // strand == '-'
+            this->qStart = qStarts[end_pos] - blockSizes[end_pos];
+            this->qEnd = qStarts[start_pos];
+        }
+        
+        unsigned int i;
+        this->blockSizes = new block_local_t[blockCount];
+        for (i = 0; i < blockCount; ++i)
+            this->blockSizes[i] = ulong2block_local_t(blockSizes[start_pos + i]);
+        
+        this->qStarts = new block_local_t[blockCount];
+        for (i = 0; i < blockCount; ++i)
+            this->qStarts[i] = ulong2block_local_t(qStarts[start_pos + i] - this->qStart); // converting to local coordinate
+        
+        this->tStarts = new block_local_t[blockCount];
+        for (i = 0; i < blockCount; ++i)
+            this->tStarts[i] = ulong2block_local_t(tStarts[start_pos + i] - this->tStart); // converting to local coordinate
+}
+
 AlignmentRecord::AlignmentRecord(const AlignmentRecord &other)
         : strand(other.strand), qStart(other.qStart), qEnd(other.qEnd),
           tStart(other.tStart), tEnd(other.tEnd),

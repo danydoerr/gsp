@@ -1,2 +1,6 @@
 simulations/alf
 simulations/.snakemake
+src/IMP/*.o
+src/IMP/atomizer
+src/IMP/atomizer_debug
+src/IMP/GetMaxBlockSizeAndLocalStart

@@ -63,6 +63,15 @@ public:
 		unsigned int blockCount, std::vector<unsigned int> blockSizes,
 		std::vector<unsigned long> qStarts, std::vector<unsigned long> tStarts);
         
+        /* Same as before, but considers only a subinterval of the alignment,
+         * consisting of "blockCount" blocks >= 1 starting from start_pos >= 0*/
+        AlignmentRecord(char strand,
+		unsigned long qStart, unsigned long qEnd,
+		unsigned long tStart, unsigned long tEnd,
+		unsigned int blockCount, std::vector<unsigned int> blockSizes,
+		std::vector<unsigned long> qStarts, std::vector<unsigned long> tStarts,
+                unsigned int start_pos);
+        
         /* Copy constructor */
         AlignmentRecord(const AlignmentRecord &other);
         

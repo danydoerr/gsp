@@ -17,8 +17,9 @@ void parsePsl(std::vector<char*> &pslPath, std::map<std::string, unsigned long>&
 	unsigned int maxGapLength, unsigned int minAlnLength, float minAlnIdentity,
 	std::vector<AlignmentRecord *>& result);
 
-/* Organizes AlignmentRecords into buckets with regards to their target positions.
-A bucket represents a number of sequence positions, said number being equal to bucketSize.
-This makes finding alignments covering a certain positions much faster. */
-void fillBuckets(std::vector<AlignmentRecord *>& alns, unsigned int bucketSize,
-	std::vector<std::vector<AlignmentRecord *>>& result);
+/* Parses a single psl line to alignment records (original and reverse,
+ * sometimes split) and add them to records vector, returns the number of
+ * records added */
+unsigned int recordsFromPsl(std::vector<AlignmentRecord *>& records, const char *line,
+        unsigned int maxGapLength, unsigned int minAlnLength, float minAlnIdentity,
+        std::map<std::string, unsigned long>& speciesStart);

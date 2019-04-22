@@ -84,6 +84,17 @@ void IMP(std::vector<Region>& protoAtoms,
 	shoutTime(start);
 }
 
+void fillBuckets(std::vector<AlignmentRecord *>& alns, unsigned int bucketSize,
+	std::vector<std::vector<AlignmentRecord *>>& result) {
+	unsigned int firstBucket, lastBucket;
+	for (auto alnPtr : alns) {
+		firstBucket = alnPtr->tStart / bucketSize;
+		lastBucket = alnPtr->tEnd / bucketSize;
+		for (auto i = firstBucket; i <= lastBucket; i++)
+			result[i].push_back(alnPtr);
+	}
+}
+
 unsigned int binSearch_tStarts(unsigned long x, const AlignmentRecord& aln) {
 	unsigned int result = std::distance(aln.begin_tStarts(), std::upper_bound(aln.begin_tStarts(), aln.end_tStarts(), x));
 	if (result == 0) return result;

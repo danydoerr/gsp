@@ -11,6 +11,12 @@ void IMP(std::vector<Region>& , std::vector<WasteRegion>&,
 	const std::chrono::time_point<std::chrono::high_resolution_clock>,
 	unsigned int);
 
+/* Organizes AlignmentRecords into buckets with regards to their target positions.
+A bucket represents a number of sequence positions, said number being equal to bucketSize.
+This makes finding alignments covering a certain positions much faster. */
+void fillBuckets(std::vector<AlignmentRecord *>& alns, unsigned int bucketSize,
+	std::vector<std::vector<AlignmentRecord *>>& result);
+
 /* Returns index of the last element in tStarts that is <= x.
 If all elements in tStarts are > x, result is 0. Expects tStarts to be sorted ascending. */
 unsigned int binSearch_tStarts(unsigned long x, const AlignmentRecord& aln);
