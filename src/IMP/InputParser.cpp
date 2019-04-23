@@ -33,7 +33,7 @@ void InputParser::parseCmdArgs(int argc, char** &argv) {
 			<< "Shorter alignments are ignored (default: 13).\n"
 			<< "--bucketSize <size>: Size of buckets used to find covering alignments, "
 			<< "increase if you run out of memory (default: 1000).\n"
-			<< "--numThreads <num>: Number of threads to run IMP algorithm (default: 1)."
+			<< "--numThreads <num>: Number of threads to run IMP algorithm (default: 1).\n"
                         << "--printZeroLines: Print line numbers with blocks of size 0 (default: no)."
 			<< std::endl;
 		exit(EXIT_SUCCESS);
