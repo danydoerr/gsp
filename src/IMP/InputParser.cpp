@@ -133,6 +133,8 @@ unsigned int InputParser::recordsFromPsl(std::vector<AlignmentRecord *>& records
         std::vector<unsigned long> qStarts = getLongArrayField(blockCount);
         std::vector<unsigned long> tStarts = getLongArrayField(blockCount);
         
+        removeZeroBlocks(blockCount, blockSizes, qStarts, tStarts);
+        
 	// shift start positions by offset, if on reverse strand (only query) recompute w.r.t. starts to start of sequence
 	if (strand == '+')
             for (auto i = qStarts.begin(); i != qStarts.end(); i++)
@@ -173,7 +175,7 @@ void InputParser::parsePsl(std::map<std::string, unsigned long>& speciesStart,
             pslFile.open(psl);
             if (pslFile.is_open()) {
                     while (!pslFile.getline(line, MAX_LINE).eof()) {
-                            if (line[0] == '#') continue; // skip comments
+                            if (line[0] == '#' || line[0] == '\0') continue; // skip comments and empty lines
                             
                             recordsFromPsl(result, speciesStart);
                     }
@@ -211,7 +213,7 @@ void InputParser::getMaxBlockSizeAndLocalStart(unsigned long &max_bsize, unsigne
                     unsigned long line_num = 0;
                     while (!pslFile.getline(line, MAX_LINE).eof()) {
                             ++line_num;
-                            if (line[0] == '#') continue; // skip comments
+                            if (line[0] == '#' || line[0] == '\0') continue; // skip comments and empty lines
                             
                             try {
                                 recordsFromPsl(records, speciesStarts);

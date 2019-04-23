@@ -82,12 +82,15 @@ private:
 
     /* Adds record and reverse to vector and setup sym pointers */
     inline void setupSymAndAdd(std::vector<AlignmentRecord *>& records, AlignmentRecord *rec);
+    
+    /* Removes blocks of size 0 and updates related data */
+    inline void removeZeroBlocks(unsigned int &blockCount, std::vector<unsigned int> &blockSizes,
+            std::vector<unsigned long> &qStarts, std::vector<unsigned long> &tStarts);
 };
 
 
 /* InputParser inline methods */
 
-/* Reads a field string */
 inline std::string InputParser::getStringField() {
         std::string str;
         str.reserve(16); // should be enough in most cases
@@ -97,7 +100,6 @@ inline std::string InputParser::getStringField() {
         return str;
 }
 
-/* Reads and returns a field long value (we assume no sign, just digits) */
 inline unsigned long InputParser::getLongField() {
         unsigned long v = 0;
         while (line[pos] != '\t') {
@@ -108,7 +110,6 @@ inline unsigned long InputParser::getLongField() {
         return v;
 }
 
-/* Reads and returns a field int value (we assume no sign, just digits) */
 inline unsigned int InputParser::getIntField() {
         unsigned int v = 0;
         while (line[pos] != '\t') {
@@ -119,7 +120,6 @@ inline unsigned int InputParser::getIntField() {
         return v;
 }
 
-/* Reads and returns a subfield value (we assume no sign, just digits, ends with comma) */
 inline unsigned long InputParser::getLongSubField() {
 // we could join this function with getNumericField function, but an extra || comparison would make it slower
         unsigned long v = 0;
@@ -131,7 +131,6 @@ inline unsigned long InputParser::getLongSubField() {
         return v;
 }
 
-/* Reads and returns a subfield value (we assume no sign, just digits, ends with comma) */
 inline unsigned int InputParser::getIntSubField() {
 // we could join this function with getNumericField function, but an extra || comparison would make it slower
         unsigned int v = 0;
@@ -143,7 +142,6 @@ inline unsigned int InputParser::getIntSubField() {
         return v;
 }
 
-/* Reads and returns an integer vector from a field composed by a set of numeric int subfields separated and ending by comma + \t */
 inline std::vector<unsigned int> InputParser::getIntArrayField(unsigned int numberOfSubfields) {
         std::vector<unsigned int> values;
         values.reserve(numberOfSubfields);
@@ -153,7 +151,6 @@ inline std::vector<unsigned int> InputParser::getIntArrayField(unsigned int numb
         return values;
 }
 
-/* Reads and returns an integer vector from a field composed by a set of numeric long subfields separated and ending by comma + \t */
 inline std::vector<unsigned long> InputParser::getLongArrayField(unsigned int numberOfSubfields) {
         std::vector<unsigned long> values;
         values.reserve(numberOfSubfields);
@@ -163,14 +160,12 @@ inline std::vector<unsigned long> InputParser::getLongArrayField(unsigned int nu
         return values;
 }
 
-/* Advances in line skipping a number of fields */
 inline void InputParser::skipFields(unsigned int numberOfFields) {
         for (unsigned int skipped = 0; skipped < numberOfFields; ++pos)
             if (line[pos] == '\t')
                 ++skipped;
 }
 
-/* Check if sequences in current line were already read. If not, add with its related offset */
 inline void InputParser::updateSpeciesStart(std::map<std::string, unsigned long>& speciesStart,
         std::string name, unsigned long size) {
         if (!speciesStart.count(name)) {
@@ -181,11 +176,36 @@ inline void InputParser::updateSpeciesStart(std::map<std::string, unsigned long>
         }
 }
 
-/* Adds record and reverse to vector and setup sym pointers */
 inline void InputParser::setupSymAndAdd(std::vector<AlignmentRecord *>& records, AlignmentRecord *rec) {
         AlignmentRecord *rev = rec->revert();
         rec->sym = rev;
         rev->sym = rec;
         records.push_back(rec);
         records.push_back(rev);
+}
+
+inline void InputParser::removeZeroBlocks(unsigned int &blockCount, std::vector<unsigned int> &blockSizes,
+        std::vector<unsigned long> &qStarts, std::vector<unsigned long> &tStarts) {
+    unsigned int i;
+    for (i = 0; i < blockCount && blockSizes[i] != 0; ++i)
+        ;
+    
+    if (i == blockCount) // no zero blocks
+        return; // this is the most usual case and we want to know fast
+    
+    ++i; // i is in the 1st occurrence of 0, we go to the next position
+    unsigned int zeros = 1;
+    for ( ; i < blockCount; ++i)
+        if (blockSizes[i] == 0)
+            ++zeros;
+        else {
+            blockSizes[i - zeros] = blockSizes[i];
+            qStarts[i - zeros] = qStarts[i];
+            tStarts[i - zeros] = tStarts[i];
+        }
+    
+    blockCount -= zeros;
+    blockSizes.resize(blockCount);
+    qStarts.resize(blockCount);
+    tStarts.resize(blockCount);
 }
