@@ -199,15 +199,25 @@ void InputParser::getMaxBlockSizeAndLocalStart(unsigned long &max_bsize, unsigne
         std::vector<AlignmentRecord *> records;
         records.reserve(128);
         
+        std::vector<std::string> dontFit;
+        dontFit.reserve(1024);
+        unsigned long last_size = 0;
+        
 	std::ifstream pslFile;
         for (auto psl : pslPaths) {
-            std::cerr << "Reading " << psl << "... ";
+            std::cout << "Reading " << psl << "... ";
             pslFile.open(psl);
             if (pslFile.is_open()) {
+                    unsigned long line_num = 0;
                     while (!pslFile.getline(line, MAX_LINE).eof()) {
+                            ++line_num;
                             if (line[0] == '#') continue; // skip comments
                             
-                            recordsFromPsl(records, speciesStarts);
+                            try {
+                                recordsFromPsl(records, speciesStarts);
+                            } catch (std::range_error& e) { 
+                                dontFit.push_back(std::string("Input line ") + std::to_string(line_num) + ": " + std::string(e.what()));
+                            }
                             
                             for (auto curRec : records) {
                                 for (auto size = curRec->begin_blockSizes(); size != curRec->end_blockSizes(); size++)
@@ -225,12 +235,20 @@ void InputParser::getMaxBlockSizeAndLocalStart(unsigned long &max_bsize, unsigne
                             records.clear();
                     }
                     pslFile.close();
-                    std::cerr << "Done." << std::endl;
+                    std::cout << "Done." << std::endl;
+                    unsigned long newEntries = dontFit.size() - last_size;
+                    if (newEntries > 0) {
+                        std::cerr << "\t" << newEntries << " lines have values that don't fit in <" << sizeof(block_local_t) << " bytes>" << ", the first ones for each line are:" << std::endl;
+                        for (auto msg = dontFit.end() - newEntries; msg != dontFit.end(); ++msg)
+                            std::cerr << "\t" << *msg << std::endl;
+                    }
+                    last_size = dontFit.size();
             }
             else {
-                    std::cerr << "ERROR: psl file could not be opened!" << std::endl;
+                    std::cerr << "ERROR: psl file \"" << psl <<"\" could not be opened!" << std::endl;
                     exit(EXIT_FAILURE);
             }
         }
+        std::cerr << dontFit.size() << " lines with values that don't fit in <" << sizeof(block_local_t) << " bytes>" << std::endl;
         delete[] line;
 }

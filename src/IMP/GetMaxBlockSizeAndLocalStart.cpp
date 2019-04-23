@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     InputParser parser;
     parser.parseCmdArgs(argc, argv);
     parser.getMaxBlockSizeAndLocalStart(max_bsize, max_start);
-    std::cerr << "MAX SIZE: " << max_bsize << ", MAX START: " << max_start << std::endl;
+    std::cerr << "For values that fit, MAX SIZE: " << max_bsize << ", MAX START: " << max_start << std::endl;
     
     return 0;
 }
