@@ -37,6 +37,7 @@ private:
     float minAlnIdentity;
     unsigned int bucketSize;
     unsigned int numThreads;
+    bool printZeroLines;
     
     // We suppose psl lines won't be longer than that
     static const unsigned int MAX_LINE = 32768;
@@ -44,6 +45,8 @@ private:
     // Used during parse
     char *line; // current line
     unsigned int pos; // position in current line
+    unsigned long line_num; // current line number
+    std::vector<unsigned long> zeroBlockLines; // lines containing blocks of size 0
     
 
     /* Parses a single psl line to alignment records (original and reverse,
@@ -86,6 +89,9 @@ private:
     /* Removes blocks of size 0 and updates related data */
     inline void removeZeroBlocks(unsigned int &blockCount, std::vector<unsigned int> &blockSizes,
             std::vector<unsigned long> &qStarts, std::vector<unsigned long> &tStarts);
+    
+    /* Prints to stderr message about lines that have removed blocks of size 0 */
+    void printZeroBlockInfo(void);
 };
 
 
@@ -208,4 +214,6 @@ inline void InputParser::removeZeroBlocks(unsigned int &blockCount, std::vector<
     blockSizes.resize(blockCount);
     qStarts.resize(blockCount);
     tStarts.resize(blockCount);
+    
+    zeroBlockLines.push_back(line_num);
 }

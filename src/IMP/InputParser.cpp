@@ -15,6 +15,7 @@ InputParser::InputParser() {
     bucketSize = 1000;
     numThreads = 1;
     minAlnIdentity = 0.8f;
+    printZeroLines = false;
 }
 
 void InputParser::parseCmdArgs(int argc, char** &argv) {
@@ -30,9 +31,10 @@ void InputParser::parseCmdArgs(int argc, char** &argv) {
 			<< "exceeded, the alignment will be split in two (default: 13).\n"
 			<< "--minAlnLength <minAlnLength>: The minimal length an alignment must have to be considered. "
 			<< "Shorter alignments are ignored (default: 13).\n"
-			<< "--bucketSize: Size of buckets used to find covering alignments, "
+			<< "--bucketSize <size>: Size of buckets used to find covering alignments, "
 			<< "increase if you run out of memory (default: 1000).\n"
-			<< "--numThreads: Number of threads to run IMP algorithm (default: 1)."
+			<< "--numThreads <num>: Number of threads to run IMP algorithm (default: 1)."
+                        << "--printZeroLines: Print line numbers with blocks of size 0 (default: no)."
 			<< std::endl;
 		exit(EXIT_SUCCESS);
 	}
@@ -58,6 +60,7 @@ void InputParser::parseCmdArgs(int argc, char** &argv) {
 			else if (arg == "--minalnlength") minAlnLength = std::stoul(argv[++i]);
 			else if (arg == "--bucketsize") bucketSize = std::stoul(argv[++i]);
 			else if (arg == "--numthreads") numThreads = std::stoul(argv[++i]);
+                        else if (arg == "--printzerolines") printZeroLines = true;
 			else {
 				std::cerr << "Unknown argument " << arg << ". Call without arguments for instructions." << std::endl;
 				exit(EXIT_FAILURE);
@@ -168,19 +171,24 @@ void InputParser::parsePsl(std::map<std::string, unsigned long>& speciesStart,
 	std::vector<AlignmentRecord *>& result) {
     
         line = new char[MAX_LINE]; // I'm not sure if it is a good idea to allocate this big block in the stack
+        zeroBlockLines.reserve(1024);
                 
 	std::ifstream pslFile;
         for (auto psl : pslPaths) {
             std::cerr << "Reading " << psl << "... ";
             pslFile.open(psl);
             if (pslFile.is_open()) {
+                    line_num = 0;
                     while (!pslFile.getline(line, MAX_LINE).eof()) {
+                            ++line_num;
                             if (line[0] == '#' || line[0] == '\0') continue; // skip comments and empty lines
                             
                             recordsFromPsl(result, speciesStart);
                     }
                     pslFile.close();
                     std::cerr << "Done." << std::endl;
+                    printZeroBlockInfo();
+                    zeroBlockLines.clear();
             }
             else {
                     std::cerr << "ERROR: psl file could not be opened!" << std::endl;
@@ -210,7 +218,7 @@ void InputParser::getMaxBlockSizeAndLocalStart(unsigned long &max_bsize, unsigne
             std::cout << "Reading " << psl << "... ";
             pslFile.open(psl);
             if (pslFile.is_open()) {
-                    unsigned long line_num = 0;
+                    line_num = 0;
                     while (!pslFile.getline(line, MAX_LINE).eof()) {
                             ++line_num;
                             if (line[0] == '#' || line[0] == '\0') continue; // skip comments and empty lines
@@ -253,4 +261,26 @@ void InputParser::getMaxBlockSizeAndLocalStart(unsigned long &max_bsize, unsigne
         }
         std::cerr << dontFit.size() << " lines with values that don't fit in <" << sizeof(block_local_t) << " bytes>" << std::endl;
         delete[] line;
+}
+
+void InputParser::printZeroBlockInfo(void) {
+    if (zeroBlockLines.size() == 0)
+        return;
+    
+    std::cerr << "\tBlocks of size 0 found and removed in " << zeroBlockLines.size() << " alignments";
+    if (!printZeroLines) {
+        std::cerr << std::endl;
+        return;
+    }
+    
+    std::cerr << ", lines ";
+    bool first = true;
+    for (auto l : zeroBlockLines)
+        if (first) {
+            std::cerr << l;
+            first = false;
+        }
+        else
+            std::cerr << ", " << l;
+    std::cerr << std::endl;
 }
