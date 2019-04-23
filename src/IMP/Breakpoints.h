@@ -4,7 +4,7 @@
 #include "AlignmentRecord.h"
 
 /* Creates initial breakpoints from alignment and species boundaries and stores them in result. */
-void initBreakpoints(const std::vector<std::shared_ptr<AlignmentRecord>>& alns,
+void initBreakpoints(const std::vector<AlignmentRecord *>& alns,
 	const std::vector<unsigned long>& speciesBounds,
 	std::vector<Breakpoint>& result);
 

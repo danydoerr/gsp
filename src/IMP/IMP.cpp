@@ -10,7 +10,7 @@
 
 void IMP(std::vector<Region>& protoAtoms,
 	std::vector<WasteRegion>& wasteRegions,
-	const std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>& buckets,
+	const std::vector<std::vector<AlignmentRecord *>>& buckets,
 	unsigned int bucketSize, unsigned int minLength, double epsilon,
 	const std::chrono::time_point<std::chrono::high_resolution_clock> start,
 	unsigned int numThreads) {
@@ -84,8 +84,19 @@ void IMP(std::vector<Region>& protoAtoms,
 	shoutTime(start);
 }
 
-unsigned int binSearch(unsigned long x, const std::vector<unsigned long>& xList) {
-	unsigned int result = std::distance(xList.begin(), std::upper_bound(xList.begin(), xList.end(), x));
+void fillBuckets(std::vector<AlignmentRecord *>& alns, unsigned int bucketSize,
+	std::vector<std::vector<AlignmentRecord *>>& result) {
+	unsigned int firstBucket, lastBucket;
+	for (auto alnPtr : alns) {
+		firstBucket = alnPtr->tStart / bucketSize;
+		lastBucket = alnPtr->tEnd / bucketSize;
+		for (auto i = firstBucket; i <= lastBucket; i++)
+			result[i].push_back(alnPtr);
+	}
+}
+
+unsigned int binSearch_tStarts(unsigned long x, const AlignmentRecord& aln) {
+	unsigned int result = std::distance(aln.begin_tStarts(), std::upper_bound(aln.begin_tStarts(), aln.end_tStarts(), x));
 	if (result == 0) return result;
 	else return result - 1;
 }
@@ -99,14 +110,14 @@ unsigned int binSearchRegion(unsigned long x, const std::vector<WasteRegion>& bp
 }
 
 unsigned int mapBreakpoint(unsigned long bpPosition, const AlignmentRecord& aln) {
-	auto idx = binSearch(bpPosition, aln.tStarts);
+	auto idx = binSearch_tStarts(bpPosition, aln);
 	unsigned int result;
-	unsigned long dist = (bpPosition >= aln.tStarts[idx]) ? bpPosition - aln.tStarts[idx] : 0;
+	unsigned long dist = (bpPosition >= aln.get_tStarts(idx)) ? bpPosition - aln.get_tStarts(idx) : 0;
 	if (dist > aln.blockSizes[idx]) dist = aln.blockSizes[idx];
 	if (aln.strand == '+')
-		result = aln.qStarts[idx] + dist;
+		result = aln.get_qStarts(idx) + dist;
 	else
-		result = aln.qStarts[idx] - dist;
+		result = aln.get_qStarts(idx) - dist;
 	return result;
 }
 
@@ -187,26 +198,30 @@ void dpTraceBack(std::map<unsigned long, dpPosition>& allPositions,
 	unsigned long lastPos, unsigned long atomFirst, std::vector<Region>& result) {
 	unsigned long currentPos = allPositions.find(lastPos)->second.prev;
 	dpPosition *posData = &(allPositions.find(currentPos)->second);
-	std::vector<std::pair<bool, Region>> tmpRegions;
+	std::vector<bool> tmpRegionBools;
+        bool is_first = true;
 	while (currentPos >= atomFirst) {
-		if (tmpRegions.empty())
-			tmpRegions.push_back(std::make_pair(posData->dist, Region(currentPos, currentPos)));
+		if (is_first) {
+                        result.push_back(Region(currentPos, currentPos));
+			tmpRegionBools.push_back(posData->dist);
+                        is_first = false;
+                }
 		else {
-			std::pair<bool, Region> *tmp = &tmpRegions.back();
-			if (tmp->first) {
-				tmp->second.first = currentPos;
-				tmp->first = posData->dist;
+                        bool tmpBool = tmpRegionBools.back();
+                        Region *tmpRegion = &result.back();
+			if (tmpBool) {
+				tmpRegion->first = currentPos;
+                                tmpRegionBools[tmpRegionBools.size()-1] = posData->dist;
 			}
 			else {
-				tmpRegions.push_back(std::make_pair(posData->dist, Region(currentPos, currentPos)));
+                                tmpRegionBools.push_back(posData->dist);
+				result.push_back(Region(currentPos, currentPos));
 			}
 		}
 		if (!currentPos) break; // atom starts at 0
 		currentPos = posData->prev;
 		posData = &(allPositions.find(currentPos)->second);
 	}
-	for (auto i : tmpRegions)
-		result.push_back(i.second);
 }
 
 void createNewWasteRegions(const std::vector<Region>& notCovering, const std::vector<Region>& covering,
@@ -219,7 +234,7 @@ void createNewWasteRegions(const std::vector<Region>& notCovering, const std::ve
 		const Region* curRegion = &notCovering[i];
 		for (auto pos = curRegion->first; pos <= curRegion->last; pos++) {
 			nonCovPos.insert(pos);
-			allPositions.insert(std::pair<int, dpPosition>(pos, dpPosition(i))).
+			allPositions.insert(std::pair<unsigned long, dpPosition>(pos, dpPosition(i))).
 				first->second.notCoveringIds.push_back(i);
 		}
 	}
@@ -231,22 +246,24 @@ void createNewWasteRegions(const std::vector<Region>& notCovering, const std::ve
 				allPositions.find(pos)->second.coveringIds.push_back(i);
 	}
 
-	std::set<unsigned int> currentShortIntervals, lastShortIntervals;
+	std::set<unsigned int> *currentShortIntervals = new std::set<unsigned int>(), *lastShortIntervals = new std::set<unsigned int>();
 	unsigned int lastFinishedIdx = 0;
 	for (auto pos : nonCovPos) { // iterate over all viable positions i from left to right
 		auto position = allPositions.find(pos);
 		for (auto i : position->second.notCoveringIds)
-			currentShortIntervals.insert(i);
+			currentShortIntervals->insert(i);
 		if (pos == *(nonCovPos.begin())) continue; // only init for first (leftmost) position
 		// get ID of rightmost region not containing pos but left of pos
-		for (auto previous : lastShortIntervals)
-			if (currentShortIntervals.find(previous) == currentShortIntervals.end()) // not in set
+		for (auto previous : *lastShortIntervals)
+			if (currentShortIntervals->find(previous) == currentShortIntervals->end()) // not in set
 				lastFinishedIdx = previous;
 		dpFindOptimal(notCovering[lastFinishedIdx], allPositions, pos, epsilon, minLength);
-		lastShortIntervals = currentShortIntervals;
-		currentShortIntervals.clear();
+		delete lastShortIntervals;
+                lastShortIntervals = currentShortIntervals; //lastShortIntervals = currentShortIntervals;
+		currentShortIntervals = new std::set<unsigned int>(); //currentShortIntervals.clear();
 	}
 	dpTraceBack(allPositions, notCovering.back().last, atomStart, result);
+        delete lastShortIntervals; delete currentShortIntervals;
 }
 
 void consolidateRegions(std::vector<WasteRegion> &regions, unsigned int minLength) {

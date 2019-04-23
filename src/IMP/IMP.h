@@ -6,14 +6,20 @@
 
 /* Runs the IMP algorithm */
 void IMP(std::vector<Region>& , std::vector<WasteRegion>&,
-	const std::vector<std::vector<std::shared_ptr<AlignmentRecord>>>&,
+	const std::vector<std::vector<AlignmentRecord *>>&,
 	unsigned int, unsigned int, double,
 	const std::chrono::time_point<std::chrono::high_resolution_clock>,
 	unsigned int);
 
-/* Returns index of the last element in xList that is <= x.
-If all elements in xList are > x, result is 0. Expects xList to be sorted ascending. */
-unsigned int binSearch(unsigned long x, const std::vector<unsigned long>& xList);
+/* Organizes AlignmentRecords into buckets with regards to their target positions.
+A bucket represents a number of sequence positions, said number being equal to bucketSize.
+This makes finding alignments covering a certain positions much faster. */
+void fillBuckets(std::vector<AlignmentRecord *>& alns, unsigned int bucketSize,
+	std::vector<std::vector<AlignmentRecord *>>& result);
+
+/* Returns index of the last element in tStarts that is <= x.
+If all elements in tStarts are > x, result is 0. Expects tStarts to be sorted ascending. */
+unsigned int binSearch_tStarts(unsigned long x, const AlignmentRecord& aln);
 
 /* Returns index of the last element in bpList whose starting position is <= x.
 If there are none, result is 0. Expects bpList to be sorted ascending. */

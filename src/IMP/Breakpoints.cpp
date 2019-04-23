@@ -2,7 +2,7 @@
 #include <algorithm>
 #include "Breakpoints.h"
 
-void initBreakpoints(const std::vector<std::shared_ptr<AlignmentRecord>>& alns,
+void initBreakpoints(const std::vector<AlignmentRecord *>& alns,
 	const std::vector<unsigned long>& speciesBounds,
 	std::vector<Breakpoint>& result) {
 	for (auto bp : speciesBounds)
