@@ -248,9 +248,9 @@ void InputParser::getMaxBlockSizeAndLocalStart(unsigned long &max_bsize, unsigne
                     std::cout << "Done." << std::endl;
                     unsigned long newEntries = dontFit.size() - last_size;
                     if (newEntries > 0) {
-                        std::cerr << "\t" << newEntries << " lines have values that don't fit in <" << sizeof(block_local_t) << " bytes>" << ", the first ones for each line are:" << std::endl;
+                        std::cout << "\t" << newEntries << " lines have values that don't fit in <" << sizeof(block_local_t) << " bytes>" << ", the first ones for each line are:" << std::endl;
                         for (auto msg = dontFit.end() - newEntries; msg != dontFit.end(); ++msg)
-                            std::cerr << "\t" << *msg << std::endl;
+                            std::cout << "\t" << *msg << std::endl;
                     }
                     last_size = dontFit.size();
             }
