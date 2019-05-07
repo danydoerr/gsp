@@ -87,6 +87,8 @@ void IMP(std::vector<Region>& protoAtoms,
 void fillBuckets(std::deque<AlignmentRecord *>& alns, unsigned int bucketSize,
 	std::vector<std::vector<AlignmentRecord *>>& result) {
 	unsigned int firstBucket, lastBucket;
+        for (auto bucket : result)
+            bucket.reserve(bucketSize); // preallocate vector of the necessary size
 	for (auto alnPtr : alns) {
 		firstBucket = alnPtr->tStart / bucketSize;
 		lastBucket = alnPtr->tEnd / bucketSize;
