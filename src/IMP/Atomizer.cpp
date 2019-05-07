@@ -14,13 +14,12 @@
 
 int main(int argc, char** argv) {
 	// only reason the following vars are not const is for cmd arg parsing
-	std::vector<char*> pslPath;
 	unsigned int maxGapLength, minAlnLength, minLength, bucketSize, numThreads;
 	float minAlnIdentity;
         
         InputParser parser;
         parser.parseCmdArgs(argc, argv);
-        parser.getCmdLineArgs(pslPath, minLength, maxGapLength, minAlnLength, minAlnIdentity, bucketSize, numThreads);
+        parser.getCmdLineArgs(minLength, maxGapLength, minAlnLength, minAlnIdentity, bucketSize, numThreads);
 
 	// init maps and vectors
 	std::map<std::string, unsigned long> speciesStarts; // maps species name to their starting position in concatenated string

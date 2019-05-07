@@ -15,9 +15,14 @@ public:
     void parseCmdArgs(int argc, char** &argv);
     
     /* Places in variables command line arguments parsed */
-    void getCmdLineArgs(std::vector<char*> &pslPaths,
+    void getCmdLineArgs(std::vector<std::string> &pslPaths,
             unsigned int &minLength, unsigned int &maxGap, unsigned int &minAlnLength,
             float &minAlnIdentity, unsigned int &bucketSize, unsigned int &numThreads);
+    
+    /* Places in variables command line arguments parsed, except for pslPaths */
+    void getCmdLineArgs(unsigned int &minLength, unsigned int &maxGap,
+            unsigned int &minAlnLength, float &minAlnIdentity,
+            unsigned int &bucketSize, unsigned int &numThreads);
 
     /* Reads a psl file. 
     Each line is parsed to an AlignmentRecord. Pointers to all records are stored in result.
@@ -30,7 +35,7 @@ public:
     void getMaxBlockSizeAndLocalStart(unsigned long &max_bsize, unsigned long &max_start);
 
 private:
-    std::vector<char*> pslPaths;
+    std::vector<std::string> pslPaths;
     unsigned int minLength;
     unsigned int maxGapLength;
     unsigned int minAlnLength;
@@ -38,6 +43,7 @@ private:
     unsigned int bucketSize;
     unsigned int numThreads;
     bool printZeroLines;
+    bool inputNotPsl;
     
     // We suppose psl lines won't be longer than that
     static const unsigned int MAX_LINE = 32768;
@@ -92,6 +98,10 @@ private:
     
     /* Prints to stderr message about lines that have removed blocks of size 0 */
     void printZeroBlockInfo(void);
+    
+    /* For each file in pslPaths read that file and get the psl paths inside it,
+     * then replace the strings in pslPaths with the actual psl paths */
+    void readPslPaths(void);
 };
 
 

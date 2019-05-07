@@ -16,12 +16,14 @@ InputParser::InputParser() {
     numThreads = 1;
     minAlnIdentity = 0.8f;
     printZeroLines = false;
+    inputNotPsl = false;
 }
 
 void InputParser::parseCmdArgs(int argc, char** &argv) {
 	if (argc <= 1) {
-		std::cerr << "Usage: atomizer <psl file(s)> [options]\n\n"
-                        << "Multiple input psl files may be given, but always as first arguments.\n"
+		std::cerr << "Usage: atomizer <psl file(s) | list files(s)> [options]\n\n"
+                        << "Multiple input psl files (or list files, see --inputNotPsl) may be given,\n"
+                        << "but always as first arguments.\n"
 			<< "Optional arguments are given after their descriptor. The descriptor is NOT case-sensitive. \n"
 			<< "If an optional argument is not given, the default value will be used.\n"
 			<< "--minLength <minLength>: The minimum length an atom must have (defualt: 250).\n"
@@ -34,7 +36,9 @@ void InputParser::parseCmdArgs(int argc, char** &argv) {
 			<< "--bucketSize <size>: Size of buckets used to find covering alignments, "
 			<< "increase if you run out of memory (default: 1000).\n"
 			<< "--numThreads <num>: Number of threads to run IMP algorithm (default: 1).\n"
-                        << "--printZeroLines: Print line numbers with blocks of size 0 (default: no)."
+                        << "--printZeroLines: Print line numbers with blocks of size 0 (default: no).\n"
+                        << "--inputNotPsl: Each input file is not a psl file. Instead of data, the given files contain\n"
+                        << "  the path of one psl file per line, which actually contain the data to be read (default: no)."
 			<< std::endl;
 		exit(EXIT_SUCCESS);
 	}
@@ -61,6 +65,7 @@ void InputParser::parseCmdArgs(int argc, char** &argv) {
 			else if (arg == "--bucketsize") bucketSize = std::stoul(argv[++i]);
 			else if (arg == "--numthreads") numThreads = std::stoul(argv[++i]);
                         else if (arg == "--printzerolines") printZeroLines = true;
+                        else if (arg == "--inputnotpsl") inputNotPsl = true;
 			else {
 				std::cerr << "Unknown argument " << arg << ". Call without arguments for instructions." << std::endl;
 				exit(EXIT_FAILURE);
@@ -71,13 +76,27 @@ void InputParser::parseCmdArgs(int argc, char** &argv) {
 			exit(EXIT_FAILURE);
 		}
 	}
+        if (inputNotPsl) // in this case, pslPaths currently contains the files from which we have to read the actual paths
+            readPslPaths(); 
 }
 
-void InputParser::getCmdLineArgs(std::vector<char*> &pslPaths,
+void InputParser::getCmdLineArgs(std::vector<std::string> &pslPaths,
         unsigned int &minLength, unsigned int &maxGapLength, unsigned int &minAlnLength,
         float &minAlnIdentity, unsigned int &bucketSize, unsigned int &numThreads) {
     
     pslPaths = this->pslPaths;
+    minLength = this->minLength;
+    maxGapLength = this->maxGapLength;
+    minAlnLength = this->minAlnLength;
+    minAlnIdentity = this->minAlnIdentity;
+    bucketSize = this->bucketSize;
+    numThreads = this->numThreads;
+}
+
+void InputParser::getCmdLineArgs(unsigned int &minLength, unsigned int &maxGapLength,
+        unsigned int &minAlnLength, float &minAlnIdentity, unsigned int &bucketSize,
+        unsigned int &numThreads) {
+    
     minLength = this->minLength;
     maxGapLength = this->maxGapLength;
     minAlnLength = this->minAlnLength;
@@ -172,10 +191,11 @@ void InputParser::parsePsl(std::map<std::string, unsigned long>& speciesStart,
     
         line = new char[MAX_LINE]; // I'm not sure if it is a good idea to allocate this big block in the stack
         zeroBlockLines.reserve(1024);
+        int filen = 1;
                 
 	std::ifstream pslFile;
         for (auto psl : pslPaths) {
-            std::cerr << "Reading " << psl << "... ";
+            std::cerr << "Reading " << psl << " (" << filen++ << "/" << pslPaths.size() << ")... ";
             pslFile.open(psl);
             if (pslFile.is_open()) {
                     line_num = 0;
@@ -283,4 +303,31 @@ void InputParser::printZeroBlockInfo(void) {
         else
             std::cerr << ", " << l;
     std::cerr << std::endl;
+}
+
+void InputParser::readPslPaths(void) {
+        line = new char[MAX_LINE]; // I'm not sure if it is a good idea to allocate this big block in the stack
+        zeroBlockLines.reserve(1024);
+        std::vector<std::string> listFilesPaths = pslPaths;
+        pslPaths.clear();
+        
+	std::ifstream pathsFile;
+        for (auto psl : listFilesPaths) {
+            pathsFile.open(psl);
+            if (pathsFile.is_open()) {
+                    line_num = 0;
+                    while (!pathsFile.getline(line, MAX_LINE).eof()) {
+                            ++line_num;
+                            if (line[0] == '\0') continue; // skip comments and empty lines
+                            
+                            pslPaths.push_back(line);
+                    }
+                    pathsFile.close();
+            }
+            else {
+                    std::cerr << "ERROR: list file could not be opened!" << std::endl;
+                    exit(EXIT_FAILURE);
+            }
+        }
+        delete[] line;   
 }
