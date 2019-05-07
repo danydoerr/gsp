@@ -2,6 +2,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <deque>
 #include <memory>
 #include "AlignmentRecord.h"
 
@@ -28,7 +29,7 @@ public:
     Each line is parsed to an AlignmentRecord. Pointers to all records are stored in result.
     Result is sorted by the alignment's starting position in the target sequence. */
     void parsePsl(std::map<std::string, unsigned long>& speciesStart,
-            std::vector<AlignmentRecord *>& result);
+            std::deque<AlignmentRecord *>& result);
     
     /* Reads psl files and finds the maximum block size and maximum block start
      * (using local coordinates) inside an alignment */
@@ -58,7 +59,7 @@ private:
     /* Parses a single psl line to alignment records (original and reverse,
      * sometimes split) and add them to records vector, returns the number of
      * records added */
-    unsigned int recordsFromPsl(std::vector<AlignmentRecord *>& records,             
+    unsigned long recordsFromPsl(std::deque<AlignmentRecord *>& records,             
             std::map<std::string, unsigned long>& speciesStart);
     
     /* Reads a string field  */
@@ -90,7 +91,7 @@ private:
             std::string name, unsigned long size);
 
     /* Adds record and reverse to vector and setup sym pointers */
-    inline void setupSymAndAdd(std::vector<AlignmentRecord *>& records, AlignmentRecord *rec);
+    inline void setupSymAndAdd(std::deque<AlignmentRecord *>& records, AlignmentRecord *rec);
     
     /* Removes blocks of size 0 and updates related data */
     inline void removeZeroBlocks(unsigned int &blockCount, std::vector<unsigned int> &blockSizes,
@@ -192,7 +193,7 @@ inline void InputParser::updateSpeciesStart(std::map<std::string, unsigned long>
         }
 }
 
-inline void InputParser::setupSymAndAdd(std::vector<AlignmentRecord *>& records, AlignmentRecord *rec) {
+inline void InputParser::setupSymAndAdd(std::deque<AlignmentRecord *>& records, AlignmentRecord *rec) {
         AlignmentRecord *rev = rec->revert();
         rec->sym = rev;
         rev->sym = rec;

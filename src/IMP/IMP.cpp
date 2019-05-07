@@ -84,7 +84,7 @@ void IMP(std::vector<Region>& protoAtoms,
 	shoutTime(start);
 }
 
-void fillBuckets(std::vector<AlignmentRecord *>& alns, unsigned int bucketSize,
+void fillBuckets(std::deque<AlignmentRecord *>& alns, unsigned int bucketSize,
 	std::vector<std::vector<AlignmentRecord *>>& result) {
 	unsigned int firstBucket, lastBucket;
 	for (auto alnPtr : alns) {

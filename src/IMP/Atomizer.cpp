@@ -3,6 +3,7 @@
 #include <string>
 #include <chrono>
 #include <vector>
+#include <deque>
 #include <algorithm>
 
 #include "AlignmentRecord.h"
@@ -24,7 +25,7 @@ int main(int argc, char** argv) {
 	// init maps and vectors
 	std::map<std::string, unsigned long> speciesStarts; // maps species name to their starting position in concatenated string
 	std::vector<unsigned long> speciesBoundaries; // contains starting positions in concatenated sequence
-	std::vector<AlignmentRecord *> alignments;
+	std::deque<AlignmentRecord *> alignments;
 	std::vector<Breakpoint> breakPoints;
 	std::vector<WasteRegion> wasteRegions;
 	std::vector<Region> protoAtoms;
@@ -36,7 +37,14 @@ int main(int argc, char** argv) {
                 <<  ", numThreads: " << numThreads << std::endl;
 	auto start = std::chrono::high_resolution_clock::now();
 	speciesStarts = { {"$", 0} };
-	parser.parsePsl(speciesStarts, alignments);
+        
+        try{
+            parser.parsePsl(speciesStarts, alignments);
+        }catch(const std::exception &e){
+            std::cerr << e.what() << std::endl;
+            throw;
+        }
+	
 	for (auto i : speciesStarts) speciesBoundaries.push_back(i.second);
 	std::cerr << "INFO: PSL parsing done, considering " << alignments.size() << " alignments between "
 		<< speciesStarts.size() - 1 << " sequences.";

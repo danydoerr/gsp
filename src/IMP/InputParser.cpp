@@ -108,7 +108,7 @@ void InputParser::getCmdLineArgs(unsigned int &minLength, unsigned int &maxGapLe
 /* Parses a single psl line to alignment records (original and reverse,
  * sometimes split) and add them to records vector, returns the number of
  * records added */
-unsigned int InputParser::recordsFromPsl(std::vector<AlignmentRecord *>& records,
+unsigned long InputParser::recordsFromPsl(std::deque<AlignmentRecord *>& records,
         std::map<std::string, unsigned long>& speciesStart) {
     
         unsigned int orig_size = 0; // records size before adding new records
@@ -187,7 +187,7 @@ unsigned int InputParser::recordsFromPsl(std::vector<AlignmentRecord *>& records
 }
 
 void InputParser::parsePsl(std::map<std::string, unsigned long>& speciesStart,
-	std::vector<AlignmentRecord *>& result) {
+	std::deque<AlignmentRecord *>& result) {
     
         line = new char[MAX_LINE]; // I'm not sure if it is a good idea to allocate this big block in the stack
         zeroBlockLines.reserve(1024);
@@ -226,8 +226,7 @@ void InputParser::getMaxBlockSizeAndLocalStart(unsigned long &max_bsize, unsigne
         std::map<std::string, unsigned long> speciesStarts; // maps species name to their starting position in concatenated string
         speciesStarts = { {"$", 0} };
         
-        std::vector<AlignmentRecord *> records;
-        records.reserve(128);
+        std::deque<AlignmentRecord *> records;
         
         std::vector<std::string> dontFit;
         dontFit.reserve(1024);

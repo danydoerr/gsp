@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <deque>
 #include "Breakpoints.h"
 #include "AlignmentRecord.h"
 
@@ -14,7 +15,7 @@ void IMP(std::vector<Region>& , std::vector<WasteRegion>&,
 /* Organizes AlignmentRecords into buckets with regards to their target positions.
 A bucket represents a number of sequence positions, said number being equal to bucketSize.
 This makes finding alignments covering a certain positions much faster. */
-void fillBuckets(std::vector<AlignmentRecord *>& alns, unsigned int bucketSize,
+void fillBuckets(std::deque<AlignmentRecord *>& alns, unsigned int bucketSize,
 	std::vector<std::vector<AlignmentRecord *>>& result);
 
 /* Returns index of the last element in tStarts that is <= x.
