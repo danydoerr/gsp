@@ -211,7 +211,7 @@ void InputParser::parsePsl(std::map<std::string, unsigned long>& speciesStart,
                     zeroBlockLines.clear();
             }
             else {
-                    std::cerr << "ERROR: psl file could not be opened!" << std::endl;
+                    std::cerr << "ERROR: psl file could not be opened: " << psl << std::endl;
                     exit(EXIT_FAILURE);
             }
         }
@@ -324,7 +324,7 @@ void InputParser::readPslPaths(void) {
                     pathsFile.close();
             }
             else {
-                    std::cerr << "ERROR: list file could not be opened!" << std::endl;
+                    std::cerr << "ERROR: list file could not be opened: " << psl << std::endl;
                     exit(EXIT_FAILURE);
             }
         }
