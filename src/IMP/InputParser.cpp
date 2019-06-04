@@ -231,10 +231,11 @@ void InputParser::getMaxBlockSizeAndLocalStart(unsigned long &max_bsize, unsigne
         std::vector<std::string> dontFit;
         dontFit.reserve(1024);
         unsigned long last_size = 0;
+        int filen = 1;
         
 	std::ifstream pslFile;
         for (auto psl : pslPaths) {
-            std::cout << "Reading " << psl << "... ";
+            std::cout << "Reading " << psl << " (" << filen++ << "/" << pslPaths.size() << ")... ";
             pslFile.open(psl);
             if (pslFile.is_open()) {
                     line_num = 0;
